@@ -6,33 +6,75 @@ export declare class AuthController {
     register(dto: RegisterDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
-            preferredLanguage: any;
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            preferredLanguage: string;
         };
     }>;
     login(dto: LoginDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
-            preferredLanguage: any;
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            preferredLanguage: string;
         };
     }>;
     getProfile(user: any): Promise<{
-        id: any;
-        name: any;
-        email: any;
-        phone: any;
-        role: any;
-        preferredLanguage: any;
-        verificationStatus: any;
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+        role: string;
+        preferredLanguage: string;
+        verificationStatus: string;
     }>;
-    listOwnerVerifications(): Promise<any>;
-    approveOwnerVerification(id: string, user: any): Promise<any>;
-    rejectOwnerVerification(id: string, decisionReason: string | undefined, user: any): Promise<any>;
+    listOwnerVerifications(): Promise<({
+        reviewer: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        owner: {
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    })[]>;
+    approveOwnerVerification(id: string, user: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    }>;
+    rejectOwnerVerification(id: string, decisionReason: string | undefined, user: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    }>;
 }

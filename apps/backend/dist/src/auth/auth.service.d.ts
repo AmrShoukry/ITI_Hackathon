@@ -8,33 +8,75 @@ export declare class AuthService {
     register(dto: RegisterDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
-            preferredLanguage: any;
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            preferredLanguage: string;
         };
     }>;
     login(dto: LoginDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            name: any;
-            email: any;
-            role: any;
-            preferredLanguage: any;
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            preferredLanguage: string;
         };
     }>;
     getProfile(userId: string): Promise<{
-        id: any;
-        name: any;
-        email: any;
-        phone: any;
-        role: any;
-        preferredLanguage: any;
-        verificationStatus: any;
+        id: string;
+        name: string;
+        email: string;
+        phone: string;
+        role: string;
+        preferredLanguage: string;
+        verificationStatus: string;
     }>;
-    listOwnerVerifications(): Promise<any>;
-    approveOwnerVerification(id: string, adminId: string): Promise<any>;
-    rejectOwnerVerification(id: string, adminId: string, decisionReason?: string): Promise<any>;
+    listOwnerVerifications(): Promise<({
+        reviewer: {
+            id: string;
+            name: string;
+            email: string;
+        };
+        owner: {
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+        };
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    })[]>;
+    approveOwnerVerification(id: string, adminId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    }>;
+    rejectOwnerVerification(id: string, adminId: string, decisionReason?: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        nationalIdUrl: string;
+        decisionReason: string | null;
+        reviewedAt: Date | null;
+        reviewedBy: string | null;
+        ownerId: string;
+    }>;
 }

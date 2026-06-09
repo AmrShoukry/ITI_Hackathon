@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRouter } from 'next/navigation';
 import {
-  Calendar, Check, X, Shield, PlusCircle, AlertOctagon, Star, HelpCircle, UserCheck, Eye
+  Calendar, Check, X, Shield, PlusCircle, AlertOctagon, Star, HelpCircle, UserCheck, Eye, BadgeCheck, ListChecks, BarChart3, Coins, TrendingUp
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 export default function DashboardPage() {
   const { user, token, refreshProfile } = useAuth();
@@ -32,6 +32,12 @@ export default function DashboardPage() {
   const [myListings, setMyListings] = useState<any[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [allVerifications, setAllVerifications] = useState<any[]>([]);
+  const [pendingListings, setPendingListings] = useState<any[]>([]);
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminRoles, setAdminRoles] = useState<any[]>([]);
+  const [adminCategories, setAdminCategories] = useState<any[]>([]);
+  const [adminSettings, setAdminSettings] = useState<any[]>([]);
+  const [adminAnalytics, setAdminAnalytics] = useState<any | null>(null);
 
   // Dialog / action states
   const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
@@ -40,12 +46,21 @@ export default function DashboardPage() {
   const [damageBookingId, setDamageBookingId] = useState<string | null>(null);
   const [damageDesc, setDamageDesc] = useState('');
   const [damageDeduction, setDamageDeduction] = useState('');
+  const [adminSection, setAdminSection] = useState<'overview' | 'users' | 'listings' | 'verifications' | 'categories' | 'settings'>('overview');
+  const [newCategory, setNewCategory] = useState({
+    nameEn: '',
+    nameAr: '',
+    descriptionEn: '',
+    descriptionAr: '',
+  });
+  const [userRoleDrafts, setUserRoleDrafts] = useState<Record<string, string>>({});
+  const [userStatusDrafts, setUserStatusDrafts] = useState<Record<string, string>>({});
+  const [categoryDrafts, setCategoryDrafts] = useState<Record<number, any>>({});
+  const [settingDrafts, setSettingDrafts] = useState<Record<string, string>>({});
 
   const [uiError, setUiError] = useState('');
   const [uiSuccess, setUiSuccess] = useState('');
   const [formLoading, setFormLoading] = useState(false);
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
   useEffect(() => {
     if (!token) {
@@ -60,7 +75,7 @@ export default function DashboardPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${API_URL}/listings/categories`);
+      const res = await api.get('/listings/categories');
       setCategories(res.data);
       if (res.data.length > 0) setCategoryId(res.data[0].id.toString());
     } catch (e) {
@@ -68,30 +83,68 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (keepMessages = false) => {
     if (!user) return;
     setUiError('');
-    setUiSuccess('');
+    if (!keepMessages) {
+      setUiSuccess('');
+    }
 
     try {
       if (user.role === 'RENTER') {
         setActiveTab('bookings');
-        const res = await axios.get(`${API_URL}/bookings`);
+        const res = await api.get('/bookings');
         setMyBookings(res.data);
       } else if (user.role === 'OWNER') {
         setActiveTab('listings');
-        const bookingsRes = await axios.get(`${API_URL}/bookings`);
+        const bookingsRes = await api.get('/bookings');
         setMyBookings(bookingsRes.data.filter((b: any) => b.renterId === user.id));
         setIncomingRequests(bookingsRes.data.filter((b: any) => b.listing.ownerId === user.id));
 
-        const listingsRes = await axios.get(`${API_URL}/listings?ownerId=${user.id}`);
+        const listingsRes = await api.get('/listings', { params: { ownerId: user.id } });
         setMyListings(listingsRes.data);
       } else if (user.role === 'ADMIN') {
         setActiveTab('admin');
-        const bookingsRes = await axios.get(`${API_URL}/bookings`);
+        const [
+          bookingsRes,
+          verificationsRes,
+          listingsRes,
+          usersRes,
+          rolesRes,
+          categoriesRes,
+          settingsRes,
+          analyticsRes,
+        ] = await Promise.all([
+          api.get('/bookings'),
+          api.get('/admin/verifications'),
+          api.get('/admin/listings', { params: { status: 'Pending Approval' } }),
+          api.get('/admin/users'),
+          api.get('/admin/roles'),
+          api.get('/admin/categories'),
+          api.get('/admin/settings'),
+          api.get('/admin/analytics'),
+        ]);
+
         setIncomingRequests(bookingsRes.data);
-        const verificationsRes = await axios.get(`${API_URL}/auth/admin/verifications`);
         setAllVerifications(verificationsRes.data);
+        setPendingListings(listingsRes.data);
+        setAdminUsers(usersRes.data);
+        setAdminRoles(rolesRes.data);
+        setAdminCategories(categoriesRes.data);
+        setAdminSettings(settingsRes.data);
+        setAdminAnalytics(analyticsRes.data);
+        setUserRoleDrafts(
+          Object.fromEntries(usersRes.data.map((userItem: any) => [userItem.id, userItem.role?.name || 'RENTER']))
+        );
+        setUserStatusDrafts(
+          Object.fromEntries(usersRes.data.map((userItem: any) => [userItem.id, userItem.status || 'Active']))
+        );
+        setCategoryDrafts(
+          Object.fromEntries(categoriesRes.data.map((category: any) => [category.id, { ...category }]))
+        );
+        setSettingDrafts(
+          Object.fromEntries(settingsRes.data.map((setting: any) => [setting.settingKey, setting.settingValue]))
+        );
       }
     } catch (e: any) {
       setUiError(e.response?.data?.message || 'Error loading dashboard data');
@@ -102,7 +155,7 @@ export default function DashboardPage() {
     setUiError('');
     setUiSuccess('');
     try {
-      await axios.patch(`${API_URL}/auth/admin/verifications/${verificationId}/${action}`);
+      await api.patch(`/admin/verifications/${verificationId}/${action}`);
       setUiSuccess(
         action === 'approve'
           ? language === 'en'
@@ -112,9 +165,112 @@ export default function DashboardPage() {
             ? 'Owner rejected successfully!'
             : 'تم رفض المالك بنجاح!'
       );
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to update verification status');
+    }
+  };
+
+  const handleListingAction = async (listingId: string, action: 'approve' | 'reject') => {
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.post(`/admin/listings/${listingId}/${action}`);
+      setUiSuccess(
+        action === 'approve'
+          ? language === 'en'
+            ? 'Listing approved successfully!'
+            : 'تمت الموافقة على العرض بنجاح!'
+          : language === 'en'
+            ? 'Listing rejected successfully!'
+            : 'تم رفض العرض بنجاح!'
+      );
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update listing status');
+    }
+  };
+
+  const handleUserRoleSave = async (userId: string) => {
+    const roleName = userRoleDrafts[userId];
+    if (!roleName) return;
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.patch(`/admin/users/${userId}/role`, { roleName });
+      setUiSuccess(language === 'en' ? 'User role updated successfully!' : 'تم تحديث دور المستخدم بنجاح!');
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update user role');
+    }
+  };
+
+  const handleUserStatusSave = async (userId: string) => {
+    const status = userStatusDrafts[userId];
+    if (!status) return;
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.patch(`/admin/users/${userId}/status`, { status });
+      setUiSuccess(language === 'en' ? 'User status updated successfully!' : 'تم تحديث حالة المستخدم بنجاح!');
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update user status');
+    }
+  };
+
+  const handleCategoryCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.post('/admin/categories', newCategory);
+      setUiSuccess(language === 'en' ? 'Category created successfully!' : 'تم إنشاء الفئة بنجاح!');
+      setNewCategory({ nameEn: '', nameAr: '', descriptionEn: '', descriptionAr: '' });
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to create category');
+    }
+  };
+
+  const handleCategorySave = async (categoryId: number) => {
+    const draft = categoryDrafts[categoryId];
+    if (!draft) return;
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.patch(`/admin/categories/${categoryId}`, draft);
+      setUiSuccess(language === 'en' ? 'Category updated successfully!' : 'تم تحديث الفئة بنجاح!');
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update category');
+    }
+  };
+
+  const handleCategoryDelete = async (categoryId: number) => {
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.delete(`/admin/categories/${categoryId}`);
+      setUiSuccess(language === 'en' ? 'Category deleted successfully!' : 'تم حذف الفئة بنجاح!');
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to delete category');
+    }
+  };
+
+  const handleSettingSave = async (settingKey: string) => {
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await api.patch(`/admin/settings/${settingKey}`, {
+        settingValue: settingDrafts[settingKey] || '',
+        description: adminSettings.find((setting) => setting.settingKey === settingKey)?.description,
+      });
+      setUiSuccess(language === 'en' ? 'Platform setting saved successfully!' : 'تم حفظ إعدادات المنصة بنجاح!');
+      fetchDashboardData(true);
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update setting');
     }
   };
 
@@ -126,7 +282,7 @@ export default function DashboardPage() {
 
     try {
       const urls = photoUrls ? photoUrls.split(',').map((u) => u.trim()) : [];
-      await axios.post(`${API_URL}/listings`, {
+      await api.post('/listings', {
         title,
         description,
         categoryId: parseInt(categoryId, 10),
@@ -142,7 +298,7 @@ export default function DashboardPage() {
       setDailyPrice('');
       setDepositAmount('');
       setPhotoUrls('');
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to create listing');
     } finally {
@@ -154,13 +310,13 @@ export default function DashboardPage() {
     setUiError('');
     setUiSuccess('');
     try {
-      await axios.post(`${API_URL}/bookings/${bookingId}/resolve`, { status });
+      await api.post(`/bookings/${bookingId}/resolve`, { status });
       setUiSuccess(
         status === 'Approved'
           ? language === 'en' ? 'Booking approved successfully!' : 'تمت الموافقة على الحجز!'
           : language === 'en' ? 'Booking rejected successfully!' : 'تم رفض الحجز!'
       );
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to resolve booking request');
     }
@@ -170,9 +326,9 @@ export default function DashboardPage() {
     setUiError('');
     setUiSuccess('');
     try {
-      await axios.post(`${API_URL}/bookings/${bookingId}/status`, { status });
+      await api.post(`/bookings/${bookingId}/status`, { status });
       setUiSuccess(language === 'en' ? `Booking marked as ${status}!` : `تم تحديث حالة الحجز إلى ${status}!`);
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to update booking status');
     }
@@ -185,7 +341,7 @@ export default function DashboardPage() {
     setUiError('');
     setUiSuccess('');
     try {
-      await axios.post(`${API_URL}/bookings/${reviewBookingId}/reviews`, {
+      await api.post(`/bookings/${reviewBookingId}/reviews`, {
         rating: parseInt(rating, 10),
         comment,
       });
@@ -193,7 +349,7 @@ export default function DashboardPage() {
       setUiSuccess(language === 'en' ? 'Review submitted successfully!' : 'تم إرسال التقييم بنجاح!');
       setReviewBookingId(null);
       setComment('');
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to submit review');
     }
@@ -206,7 +362,7 @@ export default function DashboardPage() {
     setUiError('');
     setUiSuccess('');
     try {
-      await axios.post(`${API_URL}/bookings/${damageBookingId}/damage`, {
+      await api.post(`/bookings/${damageBookingId}/damage`, {
         description: damageDesc,
         deductionAmount: parseFloat(damageDeduction),
       });
@@ -215,11 +371,16 @@ export default function DashboardPage() {
       setDamageBookingId(null);
       setDamageDesc('');
       setDamageDeduction('');
-      fetchDashboardData();
+      fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to submit damage report');
     }
   };
+
+  const activeRentalsCount = adminAnalytics?.activeRentals ?? 0;
+  const pendingBookingsCount = incomingRequests.filter((booking) => booking.status === 'Pending').length;
+  const estimatedRevenue = adminAnalytics?.revenue ?? 0;
+  const topItemEntries = (adminAnalytics?.topItems ?? []).slice(0, 3);
 
   if (!user) {
     return null;
@@ -688,44 +849,351 @@ export default function DashboardPage() {
       {/* 4. Admin Governance Portal */}
       {activeTab === 'admin' && (
         <div className="space-y-6">
-          <h2 className="text-xl font-bold text-white">{t('pending_verifications')}</h2>
-          {allVerifications.length === 0 ? (
-            <p className="text-gray-500 text-center py-10">{language === 'en' ? 'No verifications pending review.' : 'لا توجد طلبات توثيق معلقة.'}</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {allVerifications.map((v) => (
-                <div key={v.id} className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-800">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-white">{v.owner.name}</h3>
-                    <p className="text-sm text-gray-400">Email: {v.owner.email}</p>
-                    <a
-                      href={v.nationalIdUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-brand-400 hover:underline flex items-center gap-1"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>View Uploaded ID</span>
-                    </a>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ['overview', t('admin_overview')],
+              ['users', t('admin_users')],
+              ['listings', t('admin_listings')],
+              ['verifications', t('pending_verifications')],
+              ['categories', t('admin_categories')],
+              ['settings', t('admin_settings')],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setAdminSection(key as any)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  adminSection === key ? 'bg-brand-600 text-white' : 'bg-dark-900 text-gray-400 hover:bg-gray-800'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {adminSection === 'overview' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="glass-panel p-5 rounded-2xl border border-gray-800">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{t('active_rentals')}</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">{activeRentalsCount}</p>
+                </div>
+                <div className="glass-panel p-5 rounded-2xl border border-gray-800">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{t('revenue_summary')}</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">${Number(estimatedRevenue).toFixed(2)}</p>
+                </div>
+                <div className="glass-panel p-5 rounded-2xl border border-gray-800">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{t('pending_verifications')}</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">{allVerifications.length}</p>
+                </div>
+                <div className="glass-panel p-5 rounded-2xl border border-gray-800">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{t('pending_listings')}</p>
+                  <p className="mt-2 text-3xl font-extrabold text-white">{pendingListings.length}</p>
+                </div>
+              </div>
+
+              <div className="glass-panel p-6 rounded-2xl border border-gray-800 space-y-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-brand-400" />
+                  <h2 className="text-lg font-bold text-white">{t('platform_analytics')}</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300">
+                  <div className="rounded-xl border border-gray-800 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">{language === 'en' ? 'Pending bookings' : 'طلبات الحجز المعلقة'}</p>
+                    <p className="mt-2 text-2xl font-bold text-white">{pendingBookingsCount}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleVerificationAction(v.id, 'approve')}
-                      className="rounded-lg bg-green-600 hover:bg-green-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
-                    >
-                      <Check className="h-4 w-4" />
-                      <span>{t('approve_btn')}</span>
-                    </button>
-                    <button
-                      onClick={() => handleVerificationAction(v.id, 'reject')}
-                      className="rounded-lg bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
-                    >
-                      <X className="h-4 w-4" />
-                      <span>{t('reject_btn')}</span>
-                    </button>
+                  <div className="rounded-xl border border-gray-800 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">{t('top_items')}</p>
+                    <div className="mt-2 space-y-1">
+                      {topItemEntries.length === 0 ? (
+                        <p className="text-gray-500">{language === 'en' ? 'No booking activity yet.' : 'لا توجد حركة حجز بعد.'}</p>
+                      ) : (
+                        topItemEntries.map((item: any) => (
+                          <p key={item.listingId} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{item.title}</span>
+                            <span className="font-semibold text-white">{item.count}</span>
+                          </p>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-gray-800 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">{language === 'en' ? 'Registered users' : 'المستخدمون المسجلون'}</p>
+                    <p className="mt-2 text-2xl font-bold text-white">{adminUsers.length}</p>
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+          )}
+
+          {adminSection === 'users' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white">{t('manage_users')}</h2>
+              <div className="grid grid-cols-1 gap-4">
+                {adminUsers.map((adminUser) => (
+                  <div key={adminUser.id} className="glass-panel p-5 rounded-2xl border border-gray-800 flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{adminUser.name}</h3>
+                        <p className="text-sm text-gray-400">{adminUser.email}</p>
+                        <p className="text-xs text-gray-500">{adminUser.phone}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                        <span className="rounded-full bg-gray-800 px-3 py-1">{adminUser._count?.listings || 0} listings</span>
+                        <span className="rounded-full bg-gray-800 px-3 py-1">{adminUser._count?.bookings || 0} bookings</span>
+                        <span className="rounded-full bg-gray-800 px-3 py-1">{adminUser.verifications?.[0]?.status || 'Not Submitted'}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs uppercase tracking-widest text-gray-500">{t('role')}</label>
+                        <select
+                          value={userRoleDrafts[adminUser.id] || adminUser.role?.name || 'RENTER'}
+                          onChange={(e) => setUserRoleDrafts((prev) => ({ ...prev, [adminUser.id]: e.target.value }))}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                        >
+                          {adminRoles.map((role) => (
+                            <option key={role.id} value={role.name}>{role.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs uppercase tracking-widest text-gray-500">{t('account_status')}</label>
+                        <select
+                          value={userStatusDrafts[adminUser.id] || adminUser.status || 'Active'}
+                          onChange={(e) => setUserStatusDrafts((prev) => ({ ...prev, [adminUser.id]: e.target.value }))}
+                          className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Suspended">Suspended</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <button
+                          onClick={() => handleUserRoleSave(adminUser.id)}
+                          className="rounded-lg bg-brand-600 hover:bg-brand-500 px-4 py-2 text-xs font-bold text-white"
+                        >
+                          {t('save_changes')}
+                        </button>
+                        <button
+                          onClick={() => handleUserStatusSave(adminUser.id)}
+                          className="rounded-lg bg-gray-800 hover:bg-gray-700 px-4 py-2 text-xs font-bold text-white"
+                        >
+                          {t('save_changes')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {adminSection === 'listings' && (
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold text-white">{t('pending_listings')}</h2>
+              {pendingListings.length === 0 ? (
+                <p className="text-gray-500 text-center py-10">{t('no_pending_listings')}</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {pendingListings.map((listing) => (
+                    <div key={listing.id} className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-800">
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-white">{listing.title}</h3>
+                        <p className="text-sm text-gray-400">{listing.owner?.name} · {listing.category?.nameEn}</p>
+                        <p className="text-sm text-gray-400">
+                          ${Number(listing.dailyPrice)} / {language === 'en' ? 'day' : 'يوم'} · ${Number(listing.depositAmount)} {language === 'en' ? 'deposit' : 'تأمين'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleListingAction(listing.id, 'approve')}
+                          className="rounded-lg bg-green-600 hover:bg-green-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>{t('approve_btn')}</span>
+                        </button>
+                        <button
+                          onClick={() => handleListingAction(listing.id, 'reject')}
+                          className="rounded-lg bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>{t('reject_btn')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {adminSection === 'verifications' && (
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold text-white">{t('pending_verifications')}</h2>
+              {allVerifications.length === 0 ? (
+                <p className="text-gray-500 text-center py-10">{language === 'en' ? 'No verifications pending review.' : 'لا توجد طلبات توثيق معلقة.'}</p>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {allVerifications.map((v) => (
+                    <div key={v.id} className="glass-panel p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-gray-800">
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-white">{v.owner.name}</h3>
+                        <p className="text-sm text-gray-400">Email: {v.owner.email}</p>
+                        <p className="text-xs uppercase tracking-widest text-gray-500">
+                          {t('status')}: {v.status}
+                        </p>
+                        <a
+                          href={v.nationalIdUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-brand-400 hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>{t('view_uploaded_id')}</span>
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleVerificationAction(v.id, 'approve')}
+                          className="rounded-lg bg-green-600 hover:bg-green-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>{t('approve_btn')}</span>
+                        </button>
+                        <button
+                          onClick={() => handleVerificationAction(v.id, 'reject')}
+                          className="rounded-lg bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>{t('reject_btn')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {adminSection === 'categories' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white">{t('manage_categories')}</h2>
+              <form onSubmit={handleCategoryCreate} className="glass-panel p-5 rounded-2xl border border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">English Name</label>
+                  <input
+                    value={newCategory.nameEn}
+                    onChange={(e) => setNewCategory((prev) => ({ ...prev, nameEn: e.target.value }))}
+                    className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Arabic Name</label>
+                  <input
+                    value={newCategory.nameAr}
+                    onChange={(e) => setNewCategory((prev) => ({ ...prev, nameAr: e.target.value }))}
+                    className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">English Description</label>
+                  <textarea
+                    value={newCategory.descriptionEn}
+                    onChange={(e) => setNewCategory((prev) => ({ ...prev, descriptionEn: e.target.value }))}
+                    className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs uppercase tracking-widest text-gray-500">Arabic Description</label>
+                  <textarea
+                    value={newCategory.descriptionAr}
+                    onChange={(e) => setNewCategory((prev) => ({ ...prev, descriptionAr: e.target.value }))}
+                    className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                  />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <button type="submit" className="rounded-lg bg-brand-600 hover:bg-brand-500 px-4 py-2 text-xs font-bold text-white">
+                    {t('create_category')}
+                  </button>
+                </div>
+              </form>
+
+              <div className="grid grid-cols-1 gap-4">
+                {adminCategories.map((category) => (
+                  <div key={category.id} className="glass-panel p-5 rounded-2xl border border-gray-800 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        value={categoryDrafts[category.id]?.nameEn ?? category.nameEn}
+                        onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [category.id]: { ...prev[category.id], nameEn: e.target.value } }))}
+                        className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                      />
+                      <input
+                        value={categoryDrafts[category.id]?.nameAr ?? category.nameAr}
+                        onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [category.id]: { ...prev[category.id], nameAr: e.target.value } }))}
+                        className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                      />
+                      <textarea
+                        value={categoryDrafts[category.id]?.descriptionEn ?? category.descriptionEn ?? ''}
+                        onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [category.id]: { ...prev[category.id], descriptionEn: e.target.value } }))}
+                        className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                      />
+                      <textarea
+                        value={categoryDrafts[category.id]?.descriptionAr ?? category.descriptionAr ?? ''}
+                        onChange={(e) => setCategoryDrafts((prev) => ({ ...prev, [category.id]: { ...prev[category.id], descriptionAr: e.target.value } }))}
+                        className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleCategoryDelete(category.id)}
+                        className="rounded-lg bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white"
+                      >
+                        {t('reject_btn')}
+                      </button>
+                      <button
+                        onClick={() => handleCategorySave(category.id)}
+                        className="rounded-lg bg-brand-600 hover:bg-brand-500 px-4 py-2 text-xs font-bold text-white"
+                      >
+                        {t('save_changes')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {adminSection === 'settings' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-white">{t('manage_settings')}</h2>
+              <div className="grid grid-cols-1 gap-4">
+                {adminSettings.map((setting) => (
+                  <div key={setting.id} className="glass-panel p-5 rounded-2xl border border-gray-800 space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{setting.settingKey}</h3>
+                        <p className="text-sm text-gray-400">{setting.description || ''}</p>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {setting.updater ? `${setting.updater.name}` : 'System'}
+                      </span>
+                    </div>
+                    <textarea
+                      value={settingDrafts[setting.settingKey] ?? setting.settingValue}
+                      onChange={(e) => setSettingDrafts((prev) => ({ ...prev, [setting.settingKey]: e.target.value }))}
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white bg-dark-800 border border-gray-700"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => handleSettingSave(setting.settingKey)}
+                        className="rounded-lg bg-brand-600 hover:bg-brand-500 px-4 py-2 text-xs font-bold text-white"
+                      >
+                        {t('save_changes')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

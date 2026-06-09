@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { Calendar, Tag, Shield, Star, Image as ImageIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { api } from '../../../lib/api';
 
 interface Listing {
   id: string;
@@ -40,15 +40,13 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
   useEffect(() => {
     fetchListing();
   }, [params.id]);
 
   const fetchListing = async () => {
     try {
-      const res = await axios.get(`${API_URL}/listings/${params.id}`);
+      const res = await api.get(`/listings/${params.id}`);
       setListing(res.data);
     } catch (e) {
       console.error('Error fetching listing details', e);
@@ -74,7 +72,7 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
 
     setBookingLoading(true);
     try {
-      await axios.post(`${API_URL}/bookings`, {
+      await api.post('/bookings', {
         listingId: params.id,
         startDate,
         endDate,

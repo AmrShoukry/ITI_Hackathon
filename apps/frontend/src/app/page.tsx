@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import Link from 'next/link';
 import { useLanguage } from '../context/LanguageContext';
 import { Search, SlidersHorizontal, Tag, Image as ImageIcon } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface Listing {
   id: string;
@@ -35,8 +35,6 @@ export default function LandingPage() {
   const [condition, setCondition] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
   useEffect(() => {
     fetchCategories();
     fetchListings();
@@ -44,7 +42,7 @@ export default function LandingPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${API_URL}/listings/categories`);
+      const res = await api.get('/listings/categories');
       setCategories(res.data);
     } catch (e) {
       console.error('Error fetching categories', e);
@@ -61,7 +59,7 @@ export default function LandingPage() {
       if (maxPrice) params.maxPrice = maxPrice;
       if (condition) params.condition = condition;
 
-      const res = await axios.get(`${API_URL}/listings`, { params });
+      const res = await api.get('/listings', { params });
       setListings(res.data);
     } catch (e) {
       console.error('Error fetching listings', e);

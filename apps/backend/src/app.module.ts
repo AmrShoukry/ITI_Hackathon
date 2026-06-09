@@ -3,6 +3,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ListingsModule } from './listings/listings.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { BookingsModule } from './bookings/bookings.module';
     AuthModule,
     ListingsModule,
     BookingsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

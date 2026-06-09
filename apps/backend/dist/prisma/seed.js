@@ -107,6 +107,28 @@ async function main() {
             create: cat,
         });
     }
+    const adminSettingsData = [
+        {
+            settingKey: 'pricing_rule',
+            settingValue: 'Owners set the final daily price, subject to admin review.',
+            description: 'Platform pricing policy',
+        },
+        {
+            settingKey: 'deposit_policy',
+            settingValue: 'Default deposit should cover at least one rental day.',
+            description: 'Platform deposit policy',
+        },
+    ];
+    for (const setting of adminSettingsData) {
+        await prisma.adminSetting.upsert({
+            where: { settingKey: setting.settingKey },
+            update: {
+                settingValue: setting.settingValue,
+                description: setting.description,
+            },
+            create: setting,
+        });
+    }
     const adminEmail = 'admin@itemrental.com';
     const hashedPassword = await bcrypt.hash('Admin@123', 10);
     await prisma.user.upsert({

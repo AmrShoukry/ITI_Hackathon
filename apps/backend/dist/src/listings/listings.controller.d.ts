@@ -3,14 +3,176 @@ import { CreateListingDto, UpdateListingDto } from './dto/listing.dto';
 export declare class ListingsController {
     private listingsService;
     constructor(listingsService: ListingsService);
-    getCategories(): Promise<any>;
-    create(dto: CreateListingDto, user: any): Promise<any>;
-    findAll(search?: string, categoryId?: string, minPrice?: string, maxPrice?: string, condition?: string, ownerId?: string, status?: string): Promise<any>;
-    findOne(id: string): Promise<any>;
-    update(id: string, dto: UpdateListingDto, user: any): Promise<any>;
+    getCategories(): Promise<{
+        id: number;
+        createdAt: Date;
+        nameEn: string;
+        nameAr: string;
+        descriptionEn: string | null;
+        descriptionAr: string | null;
+    }[]>;
+    create(dto: CreateListingDto, user: any): Promise<{
+        category: {
+            id: number;
+            createdAt: Date;
+            nameEn: string;
+            nameAr: string;
+            descriptionEn: string | null;
+            descriptionAr: string | null;
+        };
+        photos: {
+            id: string;
+            createdAt: Date;
+            photoUrl: string;
+            displayOrder: number;
+            listingId: string;
+        }[];
+    } & {
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    }>;
+    findAll(search?: string, categoryId?: string, minPrice?: string, maxPrice?: string, condition?: string, ownerId?: string, status?: string): Promise<({
+        category: {
+            id: number;
+            createdAt: Date;
+            nameEn: string;
+            nameAr: string;
+            descriptionEn: string | null;
+            descriptionAr: string | null;
+        };
+        owner: {
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+        };
+        photos: {
+            id: string;
+            createdAt: Date;
+            photoUrl: string;
+            displayOrder: number;
+            listingId: string;
+        }[];
+    } & {
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    })[]>;
+    findOne(id: string): Promise<{
+        category: {
+            id: number;
+            createdAt: Date;
+            nameEn: string;
+            nameAr: string;
+            descriptionEn: string | null;
+            descriptionAr: string | null;
+        };
+        bookings: {
+            startDate: Date;
+            endDate: Date;
+        }[];
+        owner: {
+            id: string;
+            name: string;
+            email: string;
+            phone: string;
+            reviewsReceived: {
+                rating: number;
+            }[];
+        };
+        photos: {
+            id: string;
+            createdAt: Date;
+            photoUrl: string;
+            displayOrder: number;
+            listingId: string;
+        }[];
+    } & {
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    }>;
+    update(id: string, dto: UpdateListingDto, user: any): Promise<{
+        category: {
+            id: number;
+            createdAt: Date;
+            nameEn: string;
+            nameAr: string;
+            descriptionEn: string | null;
+            descriptionAr: string | null;
+        };
+        photos: {
+            id: string;
+            createdAt: Date;
+            photoUrl: string;
+            displayOrder: number;
+            listingId: string;
+        }[];
+    } & {
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    }>;
     remove(id: string, user: any): Promise<{
         success: boolean;
     }>;
-    approve(id: string, user: any): Promise<any>;
-    reject(id: string, user: any): Promise<any>;
+    approve(id: string, user: any): Promise<{
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    }>;
+    reject(id: string, user: any): Promise<{
+        id: string;
+        description: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        ownerId: string;
+        title: string;
+        categoryId: number;
+        condition: string;
+        dailyPrice: import("@prisma/client/runtime/library").Decimal;
+        depositAmount: import("@prisma/client/runtime/library").Decimal;
+    }>;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { api, setApiAuthToken } from '../lib/api';
 
 interface User {
   id: string;
@@ -24,8 +24,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -36,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      setApiAuthToken(storedToken);
       fetchProfile(storedToken);
     } else {
       setLoading(false);
@@ -45,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (authToken: string) => {
     try {
-      const res = await axios.get(`${API_URL}/auth/profile`, {
+      const res = await api.get('/auth/profile', {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       setUser(res.data);
@@ -66,11 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const res = await api.post('/auth/login', { email, password });
       const { access_token, user: loggedUser } = res.data;
-      localStorage.setItem('token', access_token);
       setToken(access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setApiAuthToken(access_token);
       setUser(loggedUser);
     } catch (e: any) {
       setLoading(false);
@@ -83,11 +80,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: any) => {
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/register`, data);
+      const res = await api.post('/auth/register', data);
       const { access_token, user: loggedUser } = res.data;
-      localStorage.setItem('token', access_token);
       setToken(access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setApiAuthToken(access_token);
       setUser(loggedUser);
     } catch (e: any) {
       setLoading(false);
@@ -98,10 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
+    setApiAuthToken(null);
     setLoading(false);
   };
 
