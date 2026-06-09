@@ -1,0 +1,245 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                String              @id @default(uuid())
+  name              String
+  email             String              @unique
+  phone             String
+  passwordHash      String              @map("password_hash")
+  roleId            Int                 @map("role_id")
+  role              Role                @relation(fields: [roleId], references: [id])
+  status            String              @default("Active") // Active, Suspended
+  preferredLanguage String              @default("en") @map("preferred_language") // en, ar
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  verifications     OwnerVerification[] @relation("OwnerVerifications")
+  reviewedByMe      OwnerVerification[] @relation("AdminReviews")
+  listings          Listing[]
+  bookings          Booking[]           @relation("RenterBookings")
+  damageReports     DamageReport[]      @relation("ReportedDamage")
+  damageReceived    DamageReport[]      @relation("ReceivedDamage")
+  reviewsWritten    Review[]            @relation("ReviewsWritten")
+  reviewsReceived   Review[]            @relation("ReviewsReceived")
+  adminSettings     AdminSetting[]
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model OwnerVerification {
+  id             String    @id @default(uuid())
+  ownerId        String    @map("owner_id")
+  owner          User      @relation("OwnerVerifications", fields: [ownerId], references: [id], onDelete: Cascade)
+  nationalIdUrl  String    @map("national_id_url")
+  status         String    @default("Pending") // Pending, Approved, Rejected
+  decisionReason String?   @map("decision_reason")
+  reviewedBy     String?   @map("reviewed_by")
+  reviewer       User?     @relation("AdminReviews", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime? @map("reviewed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@map("owner_verifications")
+}
+
+model Category {
+  id            Int       @id @default(autoincrement())
+  nameEn        String    @unique @map("name_en")
+  nameAr        String    @unique @map("name_ar")
+  descriptionEn String?   @map("description_en")
+  descriptionAr String?   @map("description_ar")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  listings      Listing[]
+
+  @@map("categories")
+}
+
+model Listing {
+  id            String         @id @default(uuid())
+  ownerId       String         @map("owner_id")
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  categoryId    Int            @map("category_id")
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  title         String
+  description   String
+  condition     String // New, Good, Acceptable
+  dailyPrice    Decimal        @map("daily_price") @db.Decimal(10, 2)
+  depositAmount Decimal        @map("deposit_amount") @db.Decimal(10, 2)
+  status        String         @default("Pending Approval") // Pending Approval, Active, Rejected
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  photos        ListingPhoto[]
+  availabilities Availability[]
+  bookings      Booking[]
+
+  @@map("listings")
+}
+
+model ListingPhoto {
+  id           String   @id @default(uuid())
+  listingId    String   @map("listing_id")
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  photoUrl     String   @map("photo_url")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("listing_photos")
+}
+
+model Availability {
+  id          Int      @id @default(autoincrement())
+  listingId   String   @map("listing_id")
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  startDate   DateTime @map("start_date") @db.Date
+  endDate     DateTime @map("end_date") @db.Date
+  isBlocked   Boolean  @default(true) @map("is_blocked")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("availability")
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  renterId           String        @map("renter_id")
+  renter             User          @relation("RenterBookings", fields: [renterId], references: [id], onDelete: Restrict)
+  listingId          String        @map("listing_id")
+  listing            Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  startDate          DateTime      @map("start_date") @db.Date
+  endDate            DateTime      @map("end_date") @db.Date
+  status             String        @default("Pending") // Pending, Approved, Active, Returned, Cancelled, Rejected
+  dailyPriceSnapshot Decimal       @map("daily_price_snapshot") @db.Decimal(10, 2)
+  depositSnapshot    Decimal       @map("deposit_snapshot") @db.Decimal(10, 2)
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  payments           Payment[]
+  deposit            Deposit?
+  damageReports      DamageReport[]
+
+  @@map("bookings")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  bookingId        String   @map("booking_id")
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  paymentMethod    String   @map("payment_method") // Online Payment, Cash On Pickup
+  amount           Decimal  @db.Decimal(10, 2)
+  status           String // Pending Cash Exchange, Paid, Failed, Collected
+  gatewayReference String?  @map("gateway_reference")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("payments")
+}
+
+model Deposit {
+  id               String    @id @default(uuid())
+  bookingId        String    @unique @map("booking_id")
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  amount           Decimal   @db.Decimal(10, 2)
+  status           String // Authorized, Held, Released, Deducted, Refunded
+  deductedAmount   Decimal   @default(0.00) @map("deducted_amount") @db.Decimal(10, 2)
+  gatewayReference String?   @map("gateway_reference")
+  releasedAt       DateTime? @map("released_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@map("deposits")
+}
+
+model DamageReport {
+  id              String   @id @default(uuid())
+  bookingId       String   @map("booking_id")
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  ownerId         String   @map("owner_id")
+  owner           User     @relation("ReportedDamage", fields: [ownerId], references: [id], onDelete: Restrict)
+  renterId        String   @map("renter_id")
+  renter          User     @relation("ReceivedDamage", fields: [renterId], references: [id], onDelete: Restrict)
+  description     String
+  deductionAmount Decimal  @map("deduction_amount") @db.Decimal(10, 2)
+  status          String   @default("Submitted") // Submitted, Under Review, Approved, Dismissed
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("damage_reports")
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  bookingId    String   @map("booking_id")
+  reviewerId   String   @map("reviewer_id")
+  reviewer     User     @relation("ReviewsWritten", fields: [reviewerId], references: [id], onDelete: Restrict)
+  revieweeId   String   @map("reviewee_id")
+  reviewee     User     @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Restrict)
+  rating       Int
+  comment      String?
+  reviewerRole String   @map("reviewer_role") // Renter, Owner
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([bookingId, reviewerRole], name: "unique_booking_reviewer_role")
+  @@map("reviews")
+}
+
+model AdminSetting {
+  id           Int      @id @default(autoincrement())
+  settingKey   String   @unique @map("setting_key")
+  settingValue String   @map("setting_value")
+  description  String?
+  updatedBy    String?  @map("updated_by")
+  updater      User?    @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @default(now()) @map("updated_at")
+
+  @@map("admin_settings")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    String?  @map("actor_id")
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  ipAddress  String?  @map("ip_address")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
