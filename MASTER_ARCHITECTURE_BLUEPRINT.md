@@ -28,7 +28,7 @@ This document is the canonical architecture reference for the Item Rental System
 - **Booking**
   - Reservation for a listing across a date range.
   - Attributes: `listingId`, `renterId`, `ownerId`, `startDate`, `endDate`, `status`, `pricingSnapshot`, `depositSnapshot`.
-- **Payment**
+-ذ
   - Records a monetary transaction tied to a booking.
   - Attributes: `bookingId`, `method`, `amount`, `currency`, `status`, `providerReference`.
 - **DepositLedger**

@@ -1,0 +1,18 @@
+{
+  "name": "item-rental-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "build:backend": "npm run build --workspace=apps/backend",
+    "build:frontend": "npm run build --workspace=apps/frontend",
+    "db:migrate": "npx prisma migrate dev --schema=apps/backend/prisma/schema.prisma",
+    "db:generate": "npx prisma generate --schema=apps/backend/prisma/schema.prisma",
+    "db:seed": "npx ts-node --project apps/backend/tsconfig.json apps/backend/prisma/seed.ts"
+  }
+}
