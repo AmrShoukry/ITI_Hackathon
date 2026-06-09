@@ -10,7 +10,7 @@ export declare class CreateListingDto {
     condition: ListingCondition;
     dailyPrice: number;
     depositAmount: number;
-    photoUrls?: string[];
+    photoUrls?: any;
 }
 export declare class UpdateListingDto {
     title?: string;
@@ -19,5 +19,5 @@ export declare class UpdateListingDto {
     condition?: ListingCondition;
     dailyPrice?: number;
     depositAmount?: number;
-    photoUrls?: string[];
+    photoUrls?: any;
 }

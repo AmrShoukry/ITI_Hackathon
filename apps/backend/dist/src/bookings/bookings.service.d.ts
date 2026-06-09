@@ -1,89 +1,95 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto, ResolveBookingDto } from './dto/booking.dto';
+import { PaymentsService } from '../payments/payments.service';
 export declare class BookingsService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private paymentsService;
+    constructor(prisma: PrismaService, paymentsService: PaymentsService);
     private getServiceFeePercent;
     create(dto: CreateBookingDto, renterId: string): Promise<{
         listing: {
             id: string;
-            description: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
             ownerId: string;
-            title: string;
             categoryId: number;
+            title: string;
+            description: string;
             condition: string;
             dailyPrice: import("@prisma/client/runtime/library").Decimal;
             depositAmount: import("@prisma/client/runtime/library").Decimal;
         };
         deposit: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            bookingId: string;
             deductedAmount: import("@prisma/client/runtime/library").Decimal;
             releasedAt: Date | null;
         };
         payments: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
             stripeCheckoutSessionId: string | null;
             stripePaymentIntentId: string | null;
             paidAt: Date | null;
+            bookingId: string;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        listingId: string;
-        renterId: string;
         startDate: Date;
         endDate: Date;
+        status: string;
         dailyPriceSnapshot: import("@prisma/client/runtime/library").Decimal;
         depositSnapshot: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        updatedAt: Date;
+        renterId: string;
+        listingId: string;
     }>;
     findAll(user: any): Promise<({
         listing: {
+            owner: {
+                id: string;
+                name: string;
+            };
             photos: {
                 id: string;
                 createdAt: Date;
+                listingId: string;
                 photoUrl: string;
                 displayOrder: number;
-                listingId: string;
             }[];
         } & {
             id: string;
-            description: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
             ownerId: string;
-            title: string;
             categoryId: number;
+            title: string;
+            description: string;
             condition: string;
             dailyPrice: import("@prisma/client/runtime/library").Decimal;
             depositAmount: import("@prisma/client/runtime/library").Decimal;
         };
         deposit: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            bookingId: string;
             deductedAmount: import("@prisma/client/runtime/library").Decimal;
             releasedAt: Date | null;
         };
@@ -95,26 +101,26 @@ export declare class BookingsService {
         };
         payments: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
             stripeCheckoutSessionId: string | null;
             stripePaymentIntentId: string | null;
             paidAt: Date | null;
+            bookingId: string;
         }[];
         damageReports: {
             id: string;
-            description: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            ownerId: string;
-            bookingId: string;
             renterId: string;
+            ownerId: string;
+            description: string;
+            bookingId: string;
             deductionAmount: import("@prisma/client/runtime/library").Decimal;
         }[];
         reviews: {
@@ -129,15 +135,15 @@ export declare class BookingsService {
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        listingId: string;
-        renterId: string;
         startDate: Date;
         endDate: Date;
+        status: string;
         dailyPriceSnapshot: import("@prisma/client/runtime/library").Decimal;
         depositSnapshot: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        updatedAt: Date;
+        renterId: string;
+        listingId: string;
     })[]>;
     findOne(id: string, userId: string, userRole: string): Promise<{
         listing: {
@@ -150,31 +156,31 @@ export declare class BookingsService {
             photos: {
                 id: string;
                 createdAt: Date;
+                listingId: string;
                 photoUrl: string;
                 displayOrder: number;
-                listingId: string;
             }[];
         } & {
             id: string;
-            description: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
             ownerId: string;
-            title: string;
             categoryId: number;
+            title: string;
+            description: string;
             condition: string;
             dailyPrice: import("@prisma/client/runtime/library").Decimal;
             depositAmount: import("@prisma/client/runtime/library").Decimal;
         };
         deposit: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            bookingId: string;
             deductedAmount: import("@prisma/client/runtime/library").Decimal;
             releasedAt: Date | null;
         };
@@ -186,26 +192,26 @@ export declare class BookingsService {
         };
         payments: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
             stripeCheckoutSessionId: string | null;
             stripePaymentIntentId: string | null;
             paidAt: Date | null;
+            bookingId: string;
         }[];
         damageReports: {
             id: string;
-            description: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            ownerId: string;
-            bookingId: string;
             renterId: string;
+            ownerId: string;
+            description: string;
+            bookingId: string;
             deductionAmount: import("@prisma/client/runtime/library").Decimal;
         }[];
         reviews: {
@@ -220,99 +226,99 @@ export declare class BookingsService {
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        listingId: string;
-        renterId: string;
         startDate: Date;
         endDate: Date;
+        status: string;
         dailyPriceSnapshot: import("@prisma/client/runtime/library").Decimal;
         depositSnapshot: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        updatedAt: Date;
+        renterId: string;
+        listingId: string;
     }>;
     resolve(id: string, dto: ResolveBookingDto, ownerId: string): Promise<{
         deposit: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            bookingId: string;
             deductedAmount: import("@prisma/client/runtime/library").Decimal;
             releasedAt: Date | null;
         };
         payments: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
             stripeCheckoutSessionId: string | null;
             stripePaymentIntentId: string | null;
             paidAt: Date | null;
+            bookingId: string;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        listingId: string;
-        renterId: string;
         startDate: Date;
         endDate: Date;
+        status: string;
         dailyPriceSnapshot: import("@prisma/client/runtime/library").Decimal;
         depositSnapshot: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        updatedAt: Date;
+        renterId: string;
+        listingId: string;
     }>;
     updateStatus(id: string, status: string, userId: string, userRole: string): Promise<{
         deposit: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            bookingId: string;
             deductedAmount: import("@prisma/client/runtime/library").Decimal;
             releasedAt: Date | null;
         };
         payments: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
-            status: string;
-            bookingId: string;
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
             stripeCheckoutSessionId: string | null;
             stripePaymentIntentId: string | null;
             paidAt: Date | null;
+            bookingId: string;
         }[];
     } & {
         id: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        listingId: string;
-        renterId: string;
         startDate: Date;
         endDate: Date;
+        status: string;
         dailyPriceSnapshot: import("@prisma/client/runtime/library").Decimal;
         depositSnapshot: import("@prisma/client/runtime/library").Decimal;
+        createdAt: Date;
+        updatedAt: Date;
+        renterId: string;
+        listingId: string;
     }>;
     reportDamage(id: string, description: string, deductionAmount: number, ownerId: string): Promise<{
         id: string;
-        description: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
-        status: string;
-        ownerId: string;
-        bookingId: string;
         renterId: string;
+        ownerId: string;
+        description: string;
+        bookingId: string;
         deductionAmount: import("@prisma/client/runtime/library").Decimal;
     }>;
     leaveReview(id: string, rating: number, comment: string, reviewerId: string): Promise<{

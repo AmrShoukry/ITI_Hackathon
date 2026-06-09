@@ -17,6 +17,18 @@ let ListingsService = class ListingsService {
         this.prisma = prisma;
     }
     async create(dto, ownerId) {
+        let urls = [];
+        if (dto.photoUrls) {
+            if (typeof dto.photoUrls === 'string') {
+                urls = dto.photoUrls.split(',').map((u) => u.trim()).filter(Boolean);
+            }
+            else if (Array.isArray(dto.photoUrls)) {
+                urls = dto.photoUrls
+                    .flatMap((u) => (typeof u === 'string' ? u.split(',') : u))
+                    .map((u) => u.trim())
+                    .filter(Boolean);
+            }
+        }
         const listing = await this.prisma.listing.create({
             data: {
                 title: dto.title,
@@ -26,12 +38,12 @@ let ListingsService = class ListingsService {
                 depositAmount: dto.depositAmount,
                 ownerId: ownerId,
                 categoryId: dto.categoryId,
-                status: 'Active',
+                status: 'Pending Approval',
                 photos: {
-                    create: dto.photoUrls?.map((url, index) => ({
+                    create: urls.map((url, index) => ({
                         photoUrl: url,
                         displayOrder: index,
-                    })) || [],
+                    })),
                 },
             },
             include: {
@@ -149,20 +161,35 @@ let ListingsService = class ListingsService {
         if (listing.ownerId !== userId && userRole !== 'ADMIN') {
             throw new common_1.ForbiddenException('You do not own this listing');
         }
-        const updateData = {
-            title: dto.title,
-            description: dto.description,
-            condition: dto.condition,
-            dailyPrice: dto.dailyPrice,
-            depositAmount: dto.depositAmount,
-            categoryId: dto.categoryId,
-        };
-        if (dto.photoUrls) {
+        const updateData = {};
+        if (dto.title !== undefined)
+            updateData.title = dto.title;
+        if (dto.description !== undefined)
+            updateData.description = dto.description;
+        if (dto.condition !== undefined)
+            updateData.condition = dto.condition;
+        if (dto.dailyPrice !== undefined)
+            updateData.dailyPrice = dto.dailyPrice;
+        if (dto.depositAmount !== undefined)
+            updateData.depositAmount = dto.depositAmount;
+        if (dto.categoryId !== undefined)
+            updateData.categoryId = dto.categoryId;
+        if (dto.photoUrls !== undefined) {
+            let urls = [];
+            if (typeof dto.photoUrls === 'string') {
+                urls = dto.photoUrls.split(',').map((u) => u.trim()).filter(Boolean);
+            }
+            else if (Array.isArray(dto.photoUrls)) {
+                urls = dto.photoUrls
+                    .flatMap((u) => (typeof u === 'string' ? u.split(',') : u))
+                    .map((u) => u.trim())
+                    .filter(Boolean);
+            }
             await this.prisma.listingPhoto.deleteMany({
                 where: { listingId: id },
             });
             updateData.photos = {
-                create: dto.photoUrls.map((url, index) => ({
+                create: urls.map((url, index) => ({
                     photoUrl: url,
                     displayOrder: index,
                 })),

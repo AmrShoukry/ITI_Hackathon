@@ -299,5 +299,18 @@ export class PaymentsService {
       paidAt: paidAt.toISOString(),
     };
   }
+
+  async refundPayment(paymentIntentId: string) {
+    const stripe = this.getStripe();
+    try {
+      const refund = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+      });
+      return refund;
+    } catch (error: any) {
+      console.error('Failed to refund Stripe payment:', error);
+      throw new BadRequestException(`Stripe refund failed: ${error.message}`);
+    }
+  }
 }
 

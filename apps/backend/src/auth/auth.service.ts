@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -136,6 +136,55 @@ export class AuthService {
       role: user.role.name,
       preferredLanguage: user.preferredLanguage,
       verificationStatus,
+    };
+  }
+
+  async getUserProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+        reviewsReceived: {
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            booking: {
+              include: {
+                listing: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const reviews = user.reviewsReceived || [];
+    const averageRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role.name,
+      createdAt: user.createdAt,
+      preferredLanguage: user.preferredLanguage,
+      reviews,
+      averageRating,
     };
   }
 

@@ -45,14 +45,17 @@ export const Navbar = () => {
                 <span>{t('dashboard')}</span>
               </Link>
 
-              {/* User badge */}
-              <div className="flex items-center space-x-2 rounded-full bg-gray-800 px-3 py-1.5 text-sm text-gray-200">
+              {/* User badge — clickable to profile */}
+              <Link
+                href={`/profile/${user.id}`}
+                className="flex items-center space-x-2 rounded-full bg-gray-800 px-3 py-1.5 text-sm text-gray-200 hover:bg-gray-700 transition"
+              >
                 <UserIcon className="h-3.5 w-3.5 text-gray-400" />
                 <span>{user.name}</span>
                 <span className="rounded bg-brand-500/20 px-1.5 py-0.5 text-xs font-bold text-brand-300">
                   {user.role}
                 </span>
-              </div>
+              </Link>
 
               {/* Logout */}
               <button

@@ -34,6 +34,9 @@ let AuthController = class AuthController {
     async getProfile(user) {
         return this.authService.getProfile(user.id);
     }
+    async getUserProfile(id) {
+        return this.authService.getUserProfile(id);
+    }
     async listOwnerVerifications() {
         return this.authService.listOwnerVerifications();
     }
@@ -79,6 +82,18 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('access-token'),
+    (0, common_1.Get)('profile/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get a specific user profile by ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Profile retrieved' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'User not found' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getUserProfile", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('ADMIN'),

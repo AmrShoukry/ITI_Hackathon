@@ -7,10 +7,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto, ResolveBookingDto } from './dto/booking.dto';
 import { calculateBookingTotal } from '../payments/pricing.util';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paymentsService: PaymentsService,
+  ) {}
 
   private async getServiceFeePercent(): Promise<number> {
     const setting = await this.prisma.adminSetting.findUnique({
@@ -185,6 +189,12 @@ export class BookingsService {
         listing: {
           include: {
             photos: true,
+            owner: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         renter: {
@@ -256,7 +266,7 @@ export class BookingsService {
   async resolve(id: string, dto: ResolveBookingDto, ownerId: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
-      include: { listing: true },
+      include: { listing: true, payments: true, deposit: true },
     });
 
     if (!booking) {
@@ -325,23 +335,52 @@ export class BookingsService {
         return updated;
       });
     } else {
-      const updated = await this.prisma.booking.update({
-        where: { id },
-        data: { status: 'Rejected' },
-        include: { payments: true, deposit: true },
-      });
+      return this.prisma.$transaction(async (tx) => {
+        const updated = await tx.booking.update({
+          where: { id },
+          data: { status: 'Rejected' },
+          include: { payments: true, deposit: true },
+        });
 
-      await this.prisma.auditLog.create({
-        data: {
-          actorId: ownerId,
-          action: 'REJECT_BOOKING',
-          entityType: 'Booking',
-          entityId: id,
-          metadata: { prevStatus: booking.status, newStatus: 'Rejected' },
-        },
-      });
+        // If paid by credit card, refund the renter
+        const paidPayment = booking.payments.find(
+          (p) => p.paymentMethod === 'Online Payment' && p.status === 'Paid',
+        );
+        if (paidPayment && paidPayment.stripePaymentIntentId) {
+          try {
+            await this.paymentsService.refundPayment(paidPayment.stripePaymentIntentId);
+            await tx.payment.update({
+              where: { id: paidPayment.id },
+              data: { status: 'Refunded' },
+            });
+          } catch (err) {
+            console.error(`Failed to refund payment for booking ${id}:`, err);
+          }
+        }
 
-      return updated;
+        // Release deposit if one exists
+        if (booking.deposit) {
+          await tx.deposit.update({
+            where: { bookingId: id },
+            data: {
+              status: 'Released',
+              releasedAt: new Date(),
+            },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: {
+            actorId: ownerId,
+            action: 'REJECT_BOOKING',
+            entityType: 'Booking',
+            entityId: id,
+            metadata: { prevStatus: booking.status, newStatus: 'Rejected' },
+          },
+        });
+
+        return updated;
+      });
     }
   }
 
@@ -353,7 +392,7 @@ export class BookingsService {
   ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
-      include: { listing: true, deposit: true },
+      include: { listing: true, deposit: true, payments: true },
     });
 
     if (!booking) {
@@ -390,15 +429,15 @@ export class BookingsService {
         );
       }
     } else if (status === 'Cancelled') {
-      // Cancelled - only before approval by renter
-      if (!isRenter && !isAdmin) {
+      // Cancelled - renter, owner, or admin
+      if (!isRenter && !isOwner && !isAdmin) {
         throw new ForbiddenException(
-          'Only the renter or admin can cancel this booking',
+          'Only the renter, owner, or admin can cancel this booking',
         );
       }
-      if (booking.status !== 'Pending') {
+      if (booking.status !== 'Pending' && booking.status !== 'Approved') {
         throw new BadRequestException(
-          'Bookings can only be cancelled before they are approved',
+          'Bookings can only be cancelled before they start',
         );
       }
     } else {
@@ -423,6 +462,35 @@ export class BookingsService {
             releasedAt: new Date(),
           },
         });
+      }
+
+      if (status === 'Cancelled') {
+        // If paid by credit card, refund the renter
+        const paidPayment = booking.payments.find(
+          (p) => p.paymentMethod === 'Online Payment' && p.status === 'Paid',
+        );
+        if (paidPayment && paidPayment.stripePaymentIntentId) {
+          try {
+            await this.paymentsService.refundPayment(paidPayment.stripePaymentIntentId);
+            await tx.payment.update({
+              where: { id: paidPayment.id },
+              data: { status: 'Refunded' },
+            });
+          } catch (err) {
+            console.error(`Failed to refund payment for booking ${id}:`, err);
+          }
+        }
+
+        // Release deposit on cancellation (regardless of payment method)
+        if (booking.deposit) {
+          await tx.deposit.update({
+            where: { bookingId: id },
+            data: {
+              status: 'Released',
+              releasedAt: new Date(),
+            },
+          });
+        }
       }
 
       await tx.auditLog.create({

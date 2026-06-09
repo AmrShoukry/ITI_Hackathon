@@ -62,11 +62,9 @@ __decorate([
     __metadata("design:type", Number)
 ], CreateListingDto.prototype, "depositAmount", void 0);
 __decorate([
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
     (0, class_validator_1.IsOptional)(),
-    (0, swagger_1.ApiProperty)({ required: false, isArray: true, description: 'Photo URLs' }),
-    __metadata("design:type", Array)
+    (0, swagger_1.ApiProperty)({ required: false, description: 'Photo URLs (comma-separated string or array)' }),
+    __metadata("design:type", Object)
 ], CreateListingDto.prototype, "photoUrls", void 0);
 class UpdateListingDto {
 }
@@ -113,9 +111,7 @@ __decorate([
 ], UpdateListingDto.prototype, "depositAmount", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsArray)(),
-    (0, class_validator_1.IsString)({ each: true }),
-    (0, swagger_1.ApiProperty)({ required: false, isArray: true, description: 'Photo URLs' }),
-    __metadata("design:type", Array)
+    (0, swagger_1.ApiProperty)({ required: false, description: 'Photo URLs (comma-separated string or array)' }),
+    __metadata("design:type", Object)
 ], UpdateListingDto.prototype, "photoUrls", void 0);
 //# sourceMappingURL=listing.dto.js.map

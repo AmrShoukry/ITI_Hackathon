@@ -26,4 +26,5 @@ export declare class PaymentsService {
         amount: number;
         paidAt: string;
     }>;
+    refundPayment(paymentIntentId: string): Promise<import("stripe/cjs/lib").Response<import("stripe/cjs/resources/Refunds").Refund>>;
 }

@@ -222,6 +222,19 @@ let PaymentsService = class PaymentsService {
             paidAt: paidAt.toISOString(),
         };
     }
+    async refundPayment(paymentIntentId) {
+        const stripe = this.getStripe();
+        try {
+            const refund = await stripe.refunds.create({
+                payment_intent: paymentIntentId,
+            });
+            return refund;
+        }
+        catch (error) {
+            console.error('Failed to refund Stripe payment:', error);
+            throw new common_1.BadRequestException(`Stripe refund failed: ${error.message}`);
+        }
+    }
 };
 exports.PaymentsService = PaymentsService;
 exports.PaymentsService = PaymentsService = __decorate([

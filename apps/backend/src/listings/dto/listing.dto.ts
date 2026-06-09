@@ -42,11 +42,9 @@ export class CreateListingDto {
   @ApiProperty({ description: 'Deposit amount' })
   depositAmount: number;
 
-  @IsArray()
-  @IsString({ each: true })
   @IsOptional()
-  @ApiProperty({ required: false, isArray: true, description: 'Photo URLs' })
-  photoUrls?: string[];
+  @ApiProperty({ required: false, description: 'Photo URLs (comma-separated string or array)' })
+  photoUrls?: any;
 }
 
 export class UpdateListingDto {
@@ -85,8 +83,6 @@ export class UpdateListingDto {
   depositAmount?: number;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @ApiProperty({ required: false, isArray: true, description: 'Photo URLs' })
-  photoUrls?: string[];
+  @ApiProperty({ required: false, description: 'Photo URLs (comma-separated string or array)' })
+  photoUrls?: any;
 }

@@ -6,11 +6,11 @@ export declare class ListingsService {
     create(dto: CreateListingDto, ownerId: string): Promise<{
         category: {
             id: number;
-            createdAt: Date;
             nameEn: string;
             nameAr: string;
             descriptionEn: string | null;
             descriptionAr: string | null;
+            createdAt: Date;
         };
         photos: {
             id: string;
@@ -21,16 +21,16 @@ export declare class ListingsService {
         }[];
     } & {
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     }>;
     findAll(query: {
         search?: string;
@@ -43,11 +43,11 @@ export declare class ListingsService {
     }): Promise<({
         category: {
             id: number;
-            createdAt: Date;
             nameEn: string;
             nameAr: string;
             descriptionEn: string | null;
             descriptionAr: string | null;
+            createdAt: Date;
         };
         owner: {
             id: string;
@@ -64,30 +64,26 @@ export declare class ListingsService {
         }[];
     } & {
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     })[]>;
     findOne(id: string): Promise<{
         category: {
             id: number;
-            createdAt: Date;
             nameEn: string;
             nameAr: string;
             descriptionEn: string | null;
             descriptionAr: string | null;
+            createdAt: Date;
         };
-        bookings: {
-            startDate: Date;
-            endDate: Date;
-        }[];
         owner: {
             id: string;
             name: string;
@@ -104,27 +100,31 @@ export declare class ListingsService {
             displayOrder: number;
             listingId: string;
         }[];
+        bookings: {
+            startDate: Date;
+            endDate: Date;
+        }[];
     } & {
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     }>;
     update(id: string, dto: UpdateListingDto, userId: string, userRole: string): Promise<{
         category: {
             id: number;
-            createdAt: Date;
             nameEn: string;
             nameAr: string;
             descriptionEn: string | null;
             descriptionAr: string | null;
+            createdAt: Date;
         };
         photos: {
             id: string;
@@ -135,52 +135,52 @@ export declare class ListingsService {
         }[];
     } & {
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     }>;
     remove(id: string, userId: string, userRole: string): Promise<{
         success: boolean;
     }>;
     approve(id: string, adminId: string): Promise<{
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     }>;
     reject(id: string, adminId: string): Promise<{
         id: string;
-        description: string;
         createdAt: Date;
-        updatedAt: Date;
-        status: string;
-        ownerId: string;
         title: string;
-        categoryId: number;
+        description: string;
         condition: string;
         dailyPrice: import("@prisma/client/runtime/library").Decimal;
         depositAmount: import("@prisma/client/runtime/library").Decimal;
+        status: string;
+        updatedAt: Date;
+        ownerId: string;
+        categoryId: number;
     }>;
     getCategories(): Promise<{
         id: number;
-        createdAt: Date;
         nameEn: string;
         nameAr: string;
         descriptionEn: string | null;
         descriptionAr: string | null;
+        createdAt: Date;
     }[]>;
 }

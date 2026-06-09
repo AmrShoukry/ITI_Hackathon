@@ -12,6 +12,8 @@ import {
   Image as ImageIcon,
   AlertCircle,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
 
@@ -43,6 +45,9 @@ export default function ListingDetailPage({
   const { t, language } = useLanguage();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Image gallery
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Booking fields
   const [startDate, setStartDate] = useState('');
@@ -147,23 +152,96 @@ export default function ListingDetailPage({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Listing details column */}
       <div className="lg:col-span-2 space-y-6">
-        {/* Images banner */}
+        {/* Images gallery */}
         <div className="relative aspect-video w-full rounded-2xl bg-gray-900 overflow-hidden border border-gray-800">
           {listing.photos && listing.photos.length > 0 ? (
-            <img
-              src={listing.photos[0].photoUrl}
-              alt={listing.title}
-              className="object-cover w-full h-full"
-            />
+            <>
+              <img
+                src={listing.photos[currentImageIndex]?.photoUrl}
+                alt={listing.title}
+                className="object-cover w-full h-full"
+              />
+
+              {/* Navigation arrows */}
+              {listing.photos.length > 1 && (
+                <>
+                  <button
+                    onClick={() =>
+                      setCurrentImageIndex((prev) =>
+                        prev === 0 ? listing.photos.length - 1 : prev - 1,
+                      )
+                    }
+                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCurrentImageIndex((prev) =>
+                        prev === listing.photos.length - 1 ? 0 : prev + 1,
+                      )
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Dots indicator */}
+              {listing.photos.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                  {listing.photos.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentImageIndex(i)}
+                      className={`w-2 h-2 rounded-full transition ${
+                        i === currentImageIndex
+                          ? 'bg-white w-4'
+                          : 'bg-white/50 hover:bg-white/70'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Image counter */}
+              <span className="absolute top-4 right-4 bg-black/70 text-xs font-medium text-white px-3 py-1.5 rounded-full">
+                {currentImageIndex + 1} / {listing.photos.length}
+              </span>
+            </>
           ) : (
             <div className="flex items-center justify-center h-full w-full text-gray-600">
               <ImageIcon className="h-16 w-16" />
             </div>
           )}
-          <span className="absolute top-4 right-4 bg-brand-600 text-xs font-bold text-white px-3 py-1.5 rounded-full uppercase tracking-widest">
+          <span className={`absolute top-4 ${listing.photos?.length > 0 ? 'left-4' : 'right-4'} bg-brand-600 text-xs font-bold text-white px-3 py-1.5 rounded-full uppercase tracking-widest`}>
             {listing.condition}
           </span>
         </div>
+
+        {/* Thumbnail strip */}
+        {listing.photos && listing.photos.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {listing.photos.map((photo, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentImageIndex(i)}
+                className={`flex-shrink-0 w-20 h-16 rounded-lg overflow-hidden border-2 transition ${
+                  i === currentImageIndex
+                    ? 'border-brand-500 ring-1 ring-brand-500'
+                    : 'border-gray-700 hover:border-gray-500'
+                }`}
+              >
+                <img
+                  src={photo.photoUrl}
+                  alt={`${listing.title} photo ${i + 1}`}
+                  className="object-cover w-full h-full"
+                />
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Content details */}
         <div className="glass-panel p-6 rounded-2xl space-y-4">
@@ -196,7 +274,10 @@ export default function ListingDetailPage({
             <span className="text-xs text-gray-500 uppercase tracking-wider block">
               {t('owner')}
             </span>
-            <span className="text-lg font-bold text-white">
+            <span
+              onClick={() => router.push(`/profile/${listing.owner.id}`)}
+              className="text-lg font-bold text-brand-400 hover:text-brand-300 hover:underline cursor-pointer block"
+            >
               {listing.owner.name}
             </span>
             <span className="text-sm text-gray-400 block">

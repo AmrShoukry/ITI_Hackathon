@@ -13,9 +13,11 @@ exports.BookingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const pricing_util_1 = require("../payments/pricing.util");
+const payments_service_1 = require("../payments/payments.service");
 let BookingsService = class BookingsService {
-    constructor(prisma) {
+    constructor(prisma, paymentsService) {
         this.prisma = prisma;
+        this.paymentsService = paymentsService;
     }
     async getServiceFeePercent() {
         const setting = await this.prisma.adminSetting.findUnique({
@@ -145,6 +147,12 @@ let BookingsService = class BookingsService {
                 listing: {
                     include: {
                         photos: true,
+                        owner: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
                     },
                 },
                 renter: {
@@ -209,7 +217,7 @@ let BookingsService = class BookingsService {
     async resolve(id, dto, ownerId) {
         const booking = await this.prisma.booking.findUnique({
             where: { id },
-            include: { listing: true },
+            include: { listing: true, payments: true, deposit: true },
         });
         if (!booking) {
             throw new common_1.NotFoundException('Booking not found');
@@ -260,27 +268,51 @@ let BookingsService = class BookingsService {
             });
         }
         else {
-            const updated = await this.prisma.booking.update({
-                where: { id },
-                data: { status: 'Rejected' },
-                include: { payments: true, deposit: true },
+            return this.prisma.$transaction(async (tx) => {
+                const updated = await tx.booking.update({
+                    where: { id },
+                    data: { status: 'Rejected' },
+                    include: { payments: true, deposit: true },
+                });
+                const paidPayment = booking.payments.find((p) => p.paymentMethod === 'Online Payment' && p.status === 'Paid');
+                if (paidPayment && paidPayment.stripePaymentIntentId) {
+                    try {
+                        await this.paymentsService.refundPayment(paidPayment.stripePaymentIntentId);
+                        await tx.payment.update({
+                            where: { id: paidPayment.id },
+                            data: { status: 'Refunded' },
+                        });
+                    }
+                    catch (err) {
+                        console.error(`Failed to refund payment for booking ${id}:`, err);
+                    }
+                }
+                if (booking.deposit) {
+                    await tx.deposit.update({
+                        where: { bookingId: id },
+                        data: {
+                            status: 'Released',
+                            releasedAt: new Date(),
+                        },
+                    });
+                }
+                await tx.auditLog.create({
+                    data: {
+                        actorId: ownerId,
+                        action: 'REJECT_BOOKING',
+                        entityType: 'Booking',
+                        entityId: id,
+                        metadata: { prevStatus: booking.status, newStatus: 'Rejected' },
+                    },
+                });
+                return updated;
             });
-            await this.prisma.auditLog.create({
-                data: {
-                    actorId: ownerId,
-                    action: 'REJECT_BOOKING',
-                    entityType: 'Booking',
-                    entityId: id,
-                    metadata: { prevStatus: booking.status, newStatus: 'Rejected' },
-                },
-            });
-            return updated;
         }
     }
     async updateStatus(id, status, userId, userRole) {
         const booking = await this.prisma.booking.findUnique({
             where: { id },
-            include: { listing: true, deposit: true },
+            include: { listing: true, deposit: true, payments: true },
         });
         if (!booking) {
             throw new common_1.NotFoundException('Booking not found');
@@ -305,11 +337,11 @@ let BookingsService = class BookingsService {
             }
         }
         else if (status === 'Cancelled') {
-            if (!isRenter && !isAdmin) {
-                throw new common_1.ForbiddenException('Only the renter or admin can cancel this booking');
+            if (!isRenter && !isOwner && !isAdmin) {
+                throw new common_1.ForbiddenException('Only the renter, owner, or admin can cancel this booking');
             }
-            if (booking.status !== 'Pending') {
-                throw new common_1.BadRequestException('Bookings can only be cancelled before they are approved');
+            if (booking.status !== 'Pending' && booking.status !== 'Approved') {
+                throw new common_1.BadRequestException('Bookings can only be cancelled before they start');
             }
         }
         else {
@@ -329,6 +361,30 @@ let BookingsService = class BookingsService {
                         releasedAt: new Date(),
                     },
                 });
+            }
+            if (status === 'Cancelled') {
+                const paidPayment = booking.payments.find((p) => p.paymentMethod === 'Online Payment' && p.status === 'Paid');
+                if (paidPayment && paidPayment.stripePaymentIntentId) {
+                    try {
+                        await this.paymentsService.refundPayment(paidPayment.stripePaymentIntentId);
+                        await tx.payment.update({
+                            where: { id: paidPayment.id },
+                            data: { status: 'Refunded' },
+                        });
+                    }
+                    catch (err) {
+                        console.error(`Failed to refund payment for booking ${id}:`, err);
+                    }
+                }
+                if (booking.deposit) {
+                    await tx.deposit.update({
+                        where: { bookingId: id },
+                        data: {
+                            status: 'Released',
+                            releasedAt: new Date(),
+                        },
+                    });
+                }
             }
             await tx.auditLog.create({
                 data: {
@@ -453,6 +509,7 @@ let BookingsService = class BookingsService {
 exports.BookingsService = BookingsService;
 exports.BookingsService = BookingsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        payments_service_1.PaymentsService])
 ], BookingsService);
 //# sourceMappingURL=bookings.service.js.map

@@ -126,6 +126,50 @@ let AuthService = class AuthService {
             verificationStatus,
         };
     }
+    async getUserProfile(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                role: true,
+                reviewsReceived: {
+                    include: {
+                        reviewer: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                        booking: {
+                            include: {
+                                listing: true,
+                            },
+                        },
+                    },
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                },
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const reviews = user.reviewsReceived || [];
+        const averageRating = reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            : 0;
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role.name,
+            createdAt: user.createdAt,
+            preferredLanguage: user.preferredLanguage,
+            reviews,
+            averageRating,
+        };
+    }
     async listOwnerVerifications() {
         return this.prisma.ownerVerification.findMany({
             include: {

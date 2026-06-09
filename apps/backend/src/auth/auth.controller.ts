@@ -40,6 +40,16 @@ export class AuthController {
     return this.authService.getProfile(user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @Get('profile/:id')
+  @ApiOperation({ summary: 'Get a specific user profile by ID' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getUserProfile(@Param('id') id: string) {
+    return this.authService.getUserProfile(id);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Get('admin/verifications')

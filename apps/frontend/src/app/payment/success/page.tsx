@@ -13,7 +13,9 @@ function PaymentSuccessContent() {
   const { token } = useAuth();
   const { language } = useLanguage();
 
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
+    'loading',
+  );
   const [message, setMessage] = useState('');
   const [bookingId, setBookingId] = useState<string | null>(null);
 
@@ -35,31 +37,43 @@ function PaymentSuccessContent() {
     }
 
     const verifyPayment = async () => {
-      try {
-        const res = await api.get('/payments/verify-session', {
-          params: { session_id: sessionId },
-        });
+      let attempts = 0;
+      const maxAttempts = 5;
 
-        setBookingId(res.data.bookingId);
-        setStatus('success');
-        setMessage(
-          language === 'en'
-            ? 'Payment successful! Your booking payment has been confirmed.'
-            : 'تم الدفع بنجاح! تم تأكيد دفع حجزك.',
-        );
+      const check = async () => {
+        try {
+          const res = await api.get('/payments/verify-session', {
+            params: { session_id: sessionId },
+          });
 
-        setTimeout(() => {
-          router.push(`/bookings/${res.data.bookingId}`);
-        }, 2500);
-      } catch (err: any) {
-        setStatus('error');
-        setMessage(
-          err.response?.data?.message ||
-            (language === 'en'
-              ? 'Payment verification failed. Please try again.'
-              : 'فشل التحقق من الدفع. يرجى المحاولة مرة أخرى.'),
-        );
-      }
+          setBookingId(res.data.bookingId);
+          setStatus('success');
+          setMessage(
+            language === 'en'
+              ? 'Payment successful! Your booking payment has been confirmed.'
+              : 'تم الدفع بنجاح! تم تأكيد دفع حجزك.',
+          );
+
+          setTimeout(() => {
+            router.push(`/bookings/${res.data.bookingId}`);
+          }, 1);
+        } catch (err: any) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(check, 1);
+          } else {
+            setStatus('error');
+            setMessage(
+              err.response?.data?.message ||
+                (language === 'en'
+                  ? 'Payment verification failed. Please try again.'
+                  : 'فشل التحقق من الدفع. يرجى المحاولة مرة أخرى.'),
+            );
+          }
+        }
+      };
+
+      check();
     };
 
     verifyPayment();
@@ -72,7 +86,9 @@ function PaymentSuccessContent() {
           <>
             <Loader2 className="h-12 w-12 mx-auto text-brand-400 animate-spin" />
             <h1 className="text-xl font-bold text-white">
-              {language === 'en' ? 'Verifying payment...' : 'جاري التحقق من الدفع...'}
+              {language === 'en'
+                ? 'Verifying payment...'
+                : 'جاري التحقق من الدفع...'}
             </h1>
             <p className="text-gray-400 text-sm">
               {language === 'en'
@@ -101,23 +117,25 @@ function PaymentSuccessContent() {
           <>
             <AlertCircle className="h-12 w-12 mx-auto text-red-400" />
             <h1 className="text-xl font-bold text-white">
-              {language === 'en' ? 'Payment Verification Failed' : 'فشل التحقق من الدفع'}
+              {language === 'en'
+                ? 'Payment Verification Failed'
+                : 'فشل التحقق من الدفع'}
             </h1>
             <p className="text-gray-400 text-sm">{message}</p>
             <div className="flex flex-col gap-2 pt-2">
               {bookingId && (
                 <button
                   onClick={() => router.push(`/bookings/${bookingId}`)}
-                  className="rounded-xl bg-brand-600 hover:bg-brand-500 py-3 font-semibold text-white transition"
-                >
+                  className="rounded-xl bg-brand-600 hover:bg-brand-500 py-3 font-semibold text-white transition">
                   {language === 'en' ? 'Retry Payment' : 'إعادة محاولة الدفع'}
                 </button>
               )}
               <button
                 onClick={() => router.push('/dashboard')}
-                className="rounded-xl bg-gray-800 hover:bg-gray-700 py-3 font-semibold text-white transition"
-              >
-                {language === 'en' ? 'Go to Dashboard' : 'الذهاب إلى لوحة التحكم'}
+                className="rounded-xl bg-gray-800 hover:bg-gray-700 py-3 font-semibold text-white transition">
+                {language === 'en'
+                  ? 'Go to Dashboard'
+                  : 'الذهاب إلى لوحة التحكم'}
               </button>
             </div>
           </>
@@ -134,9 +152,9 @@ export default function PaymentSuccessPage() {
         <div className="text-center py-20 text-gray-400">
           <Loader2 className="h-10 w-10 mx-auto animate-spin text-brand-400" />
         </div>
-      }
-    >
+      }>
       <PaymentSuccessContent />
     </Suspense>
   );
 }
+
