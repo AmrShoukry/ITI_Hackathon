@@ -12,9 +12,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BookingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const pricing_util_1 = require("../payments/pricing.util");
 let BookingsService = class BookingsService {
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    async getServiceFeePercent() {
+        const setting = await this.prisma.adminSetting.findUnique({
+            where: { settingKey: 'service_fee_percent' },
+        });
+        if (!setting) {
+            return 0;
+        }
+        const parsed = parseFloat(setting.settingValue);
+        return Number.isFinite(parsed) ? parsed : 0;
     }
     async create(dto, renterId) {
         const listing = await this.prisma.listing.findUnique({
@@ -67,9 +78,9 @@ let BookingsService = class BookingsService {
             if (overlap) {
                 throw new common_1.BadRequestException('The item is already booked during these dates');
             }
-            const diffTime = Math.abs(end.getTime() - start.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            const totalAmount = Number(listing.dailyPrice) * diffDays;
+            const serviceFeePercent = await this.getServiceFeePercent();
+            const pricing = (0, pricing_util_1.calculateBookingTotal)(Number(listing.dailyPrice), start, end, serviceFeePercent);
+            const totalAmount = pricing.totalAmount;
             const booking = await tx.booking.create({
                 data: {
                     renterId,
@@ -83,13 +94,17 @@ let BookingsService = class BookingsService {
                         create: {
                             paymentMethod: dto.paymentMethod,
                             amount: totalAmount,
-                            status: dto.paymentMethod === 'Online Payment' ? 'Paid' : 'Pending Cash Exchange',
+                            status: dto.paymentMethod === 'Online Payment'
+                                ? 'Pending'
+                                : 'Pending Cash Exchange',
                         },
                     },
                     deposit: {
                         create: {
                             amount: listing.depositAmount,
-                            status: dto.paymentMethod === 'Online Payment' ? 'Held' : 'Authorized',
+                            status: dto.paymentMethod === 'Online Payment'
+                                ? 'Authorized'
+                                : 'Authorized',
                         },
                     },
                 },
@@ -105,7 +120,12 @@ let BookingsService = class BookingsService {
                     action: 'CREATE_BOOKING',
                     entityType: 'Booking',
                     entityId: booking.id,
-                    metadata: { totalAmount, depositAmount: Number(listing.depositAmount) },
+                    metadata: {
+                        totalAmount,
+                        rentalSubtotal: pricing.rentalSubtotal,
+                        serviceFee: pricing.serviceFee,
+                        depositAmount: Number(listing.depositAmount),
+                    },
                 },
             });
             return booking;
@@ -213,6 +233,14 @@ let BookingsService = class BookingsService {
                 });
                 if (overlap) {
                     throw new common_1.BadRequestException('Cannot approve booking: item is already approved for overlapping dates');
+                }
+                const paymentRecord = await tx.payment.findFirst({
+                    where: { bookingId: id },
+                });
+                if (paymentRecord &&
+                    paymentRecord.paymentMethod === 'Online Payment' &&
+                    paymentRecord.status !== 'Paid') {
+                    throw new common_1.BadRequestException('Cannot approve booking: online payment not completed');
                 }
                 const updated = await tx.booking.update({
                     where: { id },

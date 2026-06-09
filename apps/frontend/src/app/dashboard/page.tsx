@@ -61,6 +61,7 @@ export default function DashboardPage() {
   const [uiError, setUiError] = useState('');
   const [uiSuccess, setUiSuccess] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [payLoadingId, setPayLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -271,6 +272,20 @@ export default function DashboardPage() {
       fetchDashboardData(true);
     } catch (err: any) {
       setUiError(err.response?.data?.message || 'Failed to update setting');
+    }
+  };
+
+  const handlePayNow = async (bookingId: string) => {
+    setUiError('');
+    setPayLoadingId(bookingId);
+    try {
+      const res = await api.post('/payments/create-checkout-session', {
+        bookingId,
+      });
+      window.location.href = res.data.url;
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to start payment');
+      setPayLoadingId(null);
     }
   };
 
@@ -509,7 +524,36 @@ export default function DashboardPage() {
                       {t(`status_${b.status.toLowerCase()}`)}
                     </span>
 
-                    {/* Actions: Cancel if Pending, Review if Returned */}
+                    {/* Actions: Cancel if Pending, Pay if online payment pending, Review if Returned */}
+                    {b.status === 'Pending' &&
+                      b.payments?.some(
+                        (p: any) =>
+                          p.paymentMethod === 'Online Payment' && p.status !== 'Paid',
+                      ) && (
+                        <button
+                          onClick={() => handlePayNow(b.id)}
+                          disabled={payLoadingId === b.id}
+                          className="rounded-lg bg-brand-600 hover:bg-brand-500 px-4 py-1.5 text-xs font-bold text-white transition disabled:opacity-50"
+                        >
+                          {payLoadingId === b.id
+                            ? language === 'en'
+                              ? 'Redirecting...'
+                              : 'جاري التحويل...'
+                            : language === 'en'
+                              ? 'Pay Now'
+                              : 'ادفع الآن'}
+                        </button>
+                      )}
+
+                    {b.status === 'Pending' && (
+                      <button
+                        onClick={() => router.push(`/bookings/${b.id}`)}
+                        className="rounded-lg bg-gray-800 hover:bg-gray-700 px-3 py-1.5 text-xs text-gray-300 transition"
+                      >
+                        {language === 'en' ? 'View' : 'عرض'}
+                      </button>
+                    )}
+
                     {b.status === 'Pending' && (
                       <button
                         onClick={() => handleUpdateStatus(b.id, 'Cancelled')}

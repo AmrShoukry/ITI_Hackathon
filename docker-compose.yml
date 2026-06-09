@@ -25,10 +25,13 @@ services:
     container_name: item-rental-backend
     ports:
       - '4000:4000'
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgresql://postgres:postgres_password@db:5432/item_rental?schema=public"
       JWT_SECRET: "my_premium_secret_key_123456789_xyz"
       PORT: 4000
+      FRONTEND_URL: "http://localhost:3000"
     depends_on:
       db:
         condition: service_healthy

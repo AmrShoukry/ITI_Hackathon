@@ -37,6 +37,9 @@ export declare class BookingsController {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;
@@ -98,6 +101,9 @@ export declare class BookingsController {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
         damageReports: {
             id: string;
@@ -186,6 +192,9 @@ export declare class BookingsController {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
         damageReports: {
             id: string;
@@ -241,6 +250,9 @@ export declare class BookingsController {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;
@@ -275,6 +287,9 @@ export declare class BookingsController {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;

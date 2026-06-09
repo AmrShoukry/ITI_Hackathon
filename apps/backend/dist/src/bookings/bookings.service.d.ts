@@ -3,6 +3,7 @@ import { CreateBookingDto, ResolveBookingDto } from './dto/booking.dto';
 export declare class BookingsService {
     private prisma;
     constructor(prisma: PrismaService);
+    private getServiceFeePercent;
     create(dto: CreateBookingDto, renterId: string): Promise<{
         listing: {
             id: string;
@@ -37,6 +38,9 @@ export declare class BookingsService {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;
@@ -98,6 +102,9 @@ export declare class BookingsService {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
         damageReports: {
             id: string;
@@ -186,6 +193,9 @@ export declare class BookingsService {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
         damageReports: {
             id: string;
@@ -241,6 +251,9 @@ export declare class BookingsService {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;
@@ -275,6 +288,9 @@ export declare class BookingsService {
             paymentMethod: string;
             amount: import("@prisma/client/runtime/library").Decimal;
             gatewayReference: string | null;
+            stripeCheckoutSessionId: string | null;
+            stripePaymentIntentId: string | null;
+            paidAt: Date | null;
         }[];
     } & {
         id: string;

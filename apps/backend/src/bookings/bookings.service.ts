@@ -1,10 +1,29 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto, ResolveBookingDto } from './dto/booking.dto';
+import { calculateBookingTotal } from '../payments/pricing.util';
 
 @Injectable()
 export class BookingsService {
   constructor(private prisma: PrismaService) {}
+
+  private async getServiceFeePercent(): Promise<number> {
+    const setting = await this.prisma.adminSetting.findUnique({
+      where: { settingKey: 'service_fee_percent' },
+    });
+
+    if (!setting) {
+      return 0;
+    }
+
+    const parsed = parseFloat(setting.settingValue);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
 
   async create(dto: CreateBookingDto, renterId: string) {
     const listing = await this.prisma.listing.findUnique({
@@ -16,7 +35,9 @@ export class BookingsService {
     }
 
     if (listing.status !== 'Active') {
-      throw new BadRequestException('This listing is not currently active or bookable');
+      throw new BadRequestException(
+        'This listing is not currently active or bookable',
+      );
     }
 
     if (listing.ownerId === renterId) {
@@ -58,7 +79,9 @@ export class BookingsService {
       });
 
       if (blocked) {
-        throw new BadRequestException('The listing is blocked by the owner during the selected dates');
+        throw new BadRequestException(
+          'The listing is blocked by the owner during the selected dates',
+        );
       }
 
       // 2. Check overlapping approved/active bookings
@@ -72,13 +95,20 @@ export class BookingsService {
       });
 
       if (overlap) {
-        throw new BadRequestException('The item is already booked during these dates');
+        throw new BadRequestException(
+          'The item is already booked during these dates',
+        );
       }
 
-      // Calculate total price
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-      const totalAmount = Number(listing.dailyPrice) * diffDays;
+      // Calculate total price (backend is source of truth)
+      const serviceFeePercent = await this.getServiceFeePercent();
+      const pricing = calculateBookingTotal(
+        Number(listing.dailyPrice),
+        start,
+        end,
+        serviceFeePercent,
+      );
+      const totalAmount = pricing.totalAmount;
 
       // 3. Create the Booking
       const booking = await tx.booking.create({
@@ -94,13 +124,22 @@ export class BookingsService {
             create: {
               paymentMethod: dto.paymentMethod,
               amount: totalAmount,
-              status: dto.paymentMethod === 'Online Payment' ? 'Paid' : 'Pending Cash Exchange',
+              // Do NOT trust client-side payment choice — when renter chooses Online Payment
+              // create a pending payment record and require server-side Stripe verification
+              status:
+                dto.paymentMethod === 'Online Payment'
+                  ? 'Pending'
+                  : 'Pending Cash Exchange',
             },
           },
           deposit: {
             create: {
               amount: listing.depositAmount,
-              status: dto.paymentMethod === 'Online Payment' ? 'Held' : 'Authorized',
+              // Deposit is only held after successful online payment; until then mark as Authorized
+              status:
+                dto.paymentMethod === 'Online Payment'
+                  ? 'Authorized'
+                  : 'Authorized',
             },
           },
         },
@@ -118,7 +157,12 @@ export class BookingsService {
           action: 'CREATE_BOOKING',
           entityType: 'Booking',
           entityId: booking.id,
-          metadata: { totalAmount, depositAmount: Number(listing.depositAmount) },
+          metadata: {
+            totalAmount,
+            rentalSubtotal: pricing.rentalSubtotal,
+            serviceFee: pricing.serviceFee,
+            depositAmount: Number(listing.depositAmount),
+          },
         },
       });
 
@@ -220,7 +264,9 @@ export class BookingsService {
     }
 
     if (booking.listing.ownerId !== ownerId) {
-      throw new ForbiddenException('Only the owner of the listing can resolve this request');
+      throw new ForbiddenException(
+        'Only the owner of the listing can resolve this request',
+      );
     }
 
     if (booking.status !== 'Pending') {
@@ -241,7 +287,23 @@ export class BookingsService {
         });
 
         if (overlap) {
-          throw new BadRequestException('Cannot approve booking: item is already approved for overlapping dates');
+          throw new BadRequestException(
+            'Cannot approve booking: item is already approved for overlapping dates',
+          );
+        }
+
+        // Ensure payment is completed for online payments before approving
+        const paymentRecord = await tx.payment.findFirst({
+          where: { bookingId: id },
+        });
+        if (
+          paymentRecord &&
+          paymentRecord.paymentMethod === 'Online Payment' &&
+          paymentRecord.status !== 'Paid'
+        ) {
+          throw new BadRequestException(
+            'Cannot approve booking: online payment not completed',
+          );
         }
 
         const updated = await tx.booking.update({
@@ -283,7 +345,12 @@ export class BookingsService {
     }
   }
 
-  async updateStatus(id: string, status: string, userId: string, userRole: string) {
+  async updateStatus(
+    id: string,
+    status: string,
+    userId: string,
+    userRole: string,
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
       include: { listing: true, deposit: true },
@@ -301,26 +368,38 @@ export class BookingsService {
     if (status === 'Active') {
       // Rental start - typically done by owner on pick up
       if (!isOwner && !isAdmin) {
-        throw new ForbiddenException('Only the owner or admin can mark a booking as Active');
+        throw new ForbiddenException(
+          'Only the owner or admin can mark a booking as Active',
+        );
       }
       if (booking.status !== 'Approved') {
-        throw new BadRequestException('Only approved bookings can be marked as Active');
+        throw new BadRequestException(
+          'Only approved bookings can be marked as Active',
+        );
       }
     } else if (status === 'Returned') {
       // Rental complete - done by owner on return
       if (!isOwner && !isAdmin) {
-        throw new ForbiddenException('Only the owner or admin can mark a booking as Returned');
+        throw new ForbiddenException(
+          'Only the owner or admin can mark a booking as Returned',
+        );
       }
       if (booking.status !== 'Active') {
-        throw new BadRequestException('Only active bookings can be marked as Returned');
+        throw new BadRequestException(
+          'Only active bookings can be marked as Returned',
+        );
       }
     } else if (status === 'Cancelled') {
       // Cancelled - only before approval by renter
       if (!isRenter && !isAdmin) {
-        throw new ForbiddenException('Only the renter or admin can cancel this booking');
+        throw new ForbiddenException(
+          'Only the renter or admin can cancel this booking',
+        );
       }
       if (booking.status !== 'Pending') {
-        throw new BadRequestException('Bookings can only be cancelled before they are approved');
+        throw new BadRequestException(
+          'Bookings can only be cancelled before they are approved',
+        );
       }
     } else {
       throw new BadRequestException('Invalid status update request');
@@ -360,7 +439,12 @@ export class BookingsService {
     });
   }
 
-  async reportDamage(id: string, description: string, deductionAmount: number, ownerId: string) {
+  async reportDamage(
+    id: string,
+    description: string,
+    deductionAmount: number,
+    ownerId: string,
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
       include: { listing: true, deposit: true },
@@ -371,11 +455,15 @@ export class BookingsService {
     }
 
     if (booking.listing.ownerId !== ownerId) {
-      throw new ForbiddenException('Only the listing owner can file damage reports');
+      throw new ForbiddenException(
+        'Only the listing owner can file damage reports',
+      );
     }
 
     if (booking.status !== 'Returned') {
-      throw new BadRequestException('Damage reports can only be submitted after the item is returned');
+      throw new BadRequestException(
+        'Damage reports can only be submitted after the item is returned',
+      );
     }
 
     if (!booking.deposit) {
@@ -383,7 +471,9 @@ export class BookingsService {
     }
 
     if (deductionAmount > Number(booking.deposit.amount)) {
-      throw new BadRequestException('Deduction amount cannot exceed the deposit amount');
+      throw new BadRequestException(
+        'Deduction amount cannot exceed the deposit amount',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -422,7 +512,12 @@ export class BookingsService {
     });
   }
 
-  async leaveReview(id: string, rating: number, comment: string, reviewerId: string) {
+  async leaveReview(
+    id: string,
+    rating: number,
+    comment: string,
+    reviewerId: string,
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
       include: { listing: true },
@@ -433,7 +528,9 @@ export class BookingsService {
     }
 
     if (booking.status !== 'Returned') {
-      throw new BadRequestException('Reviews are only allowed after the item has been returned');
+      throw new BadRequestException(
+        'Reviews are only allowed after the item has been returned',
+      );
     }
 
     let reviewerRole: 'Renter' | 'Owner';
@@ -446,7 +543,9 @@ export class BookingsService {
       reviewerRole = 'Owner';
       revieweeId = booking.renterId;
     } else {
-      throw new ForbiddenException('You are not authorized to review this booking');
+      throw new ForbiddenException(
+        'You are not authorized to review this booking',
+      );
     }
 
     // Check duplicate review
@@ -487,3 +586,4 @@ export class BookingsService {
     });
   }
 }
+

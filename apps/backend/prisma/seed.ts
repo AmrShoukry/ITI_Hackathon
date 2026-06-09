@@ -127,6 +127,11 @@ async function main() {
       description: 'Platform pricing policy',
     },
     {
+      settingKey: 'service_fee_percent',
+      settingValue: '5',
+      description: 'Platform service fee percentage applied to online rentals',
+    },
+    {
       settingKey: 'deposit_policy',
       settingValue: 'Default deposit should cover at least one rental day.',
       description: 'Platform deposit policy',

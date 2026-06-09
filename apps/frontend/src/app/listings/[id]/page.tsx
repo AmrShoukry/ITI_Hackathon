@@ -4,7 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
-import { Calendar, Tag, Shield, Star, Image as ImageIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
+import {
+  Calendar,
+  Tag,
+  Shield,
+  Star,
+  Image as ImageIcon,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 import { api } from '../../../lib/api';
 
 interface Listing {
@@ -25,7 +33,11 @@ interface Listing {
   };
 }
 
-export default function ListingDetailPage({ params }: { params: { id: string } }) {
+export default function ListingDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const router = useRouter();
   const { user } = useAuth();
   const { t, language } = useLanguage();
@@ -35,7 +47,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
   // Booking fields
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'Online Payment' | 'Cash On Pickup'>('Online Payment');
+  const [paymentMethod, setPaymentMethod] = useState<
+    'Online Payment' | 'Cash On Pickup'
+  >('Online Payment');
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -66,18 +80,27 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
     }
 
     if (!startDate || !endDate) {
-      setBookingError(language === 'en' ? 'Please select both start and end dates' : 'يرجى تحديد تاريخ البدء والانتهاء');
+      setBookingError(
+        language === 'en'
+          ? 'Please select both start and end dates'
+          : 'يرجى تحديد تاريخ البدء والانتهاء',
+      );
       return;
     }
 
     setBookingLoading(true);
     try {
-      await api.post('/bookings', {
+      const res = await api.post('/bookings', {
         listingId: params.id,
         startDate,
         endDate,
         paymentMethod,
       });
+
+      if (paymentMethod === 'Online Payment') {
+        router.push(`/bookings/${res.data.id}`);
+        return;
+      }
 
       setBookingSuccess(true);
       setStartDate('');
@@ -93,7 +116,11 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
     return (
       <div className="text-center py-20 text-gray-400">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-500 mx-auto mb-4" />
-        <span>{language === 'en' ? 'Loading listing details...' : 'جاري تحميل تفاصيل العرض...'}</span>
+        <span>
+          {language === 'en'
+            ? 'Loading listing details...'
+            : 'جاري تحميل تفاصيل العرض...'}
+        </span>
       </div>
     );
   }
@@ -109,9 +136,12 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
 
   // Calculate Trust Rating
   const reviews = listing.owner.reviewsReceived || [];
-  const trustScore = reviews.length > 0
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : null;
+  const trustScore =
+    reviews.length > 0
+      ? (
+          reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length
+        ).toFixed(1)
+      : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -139,32 +169,52 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
         <div className="glass-panel p-6 rounded-2xl space-y-4">
           <div className="flex items-center space-x-2 rtl:space-x-reverse text-xs font-bold text-brand-400 uppercase tracking-widest">
             <Tag className="h-4 w-4" />
-            <span>{language === 'en' ? listing.category.nameEn : listing.category.nameAr}</span>
+            <span>
+              {language === 'en'
+                ? listing.category.nameEn
+                : listing.category.nameAr}
+            </span>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-white leading-tight">{listing.title}</h1>
+          <h1 className="text-3xl font-extrabold text-white leading-tight">
+            {listing.title}
+          </h1>
 
           <div className="border-t border-gray-800 pt-4 mt-4">
-            <h3 className="text-lg font-bold text-white mb-2">{language === 'en' ? 'Description' : 'الوصف'}</h3>
-            <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">{listing.description}</p>
+            <h3 className="text-lg font-bold text-white mb-2">
+              {language === 'en' ? 'Description' : 'الوصف'}
+            </h3>
+            <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+              {listing.description}
+            </p>
           </div>
         </div>
 
         {/* Owner Trust Box */}
         <div className="glass-panel p-6 rounded-2xl flex items-center justify-between border border-brand-500/10">
           <div className="space-y-1">
-            <span className="text-xs text-gray-500 uppercase tracking-wider block">{t('owner')}</span>
-            <span className="text-lg font-bold text-white">{listing.owner.name}</span>
-            <span className="text-sm text-gray-400 block">{listing.owner.email}</span>
+            <span className="text-xs text-gray-500 uppercase tracking-wider block">
+              {t('owner')}
+            </span>
+            <span className="text-lg font-bold text-white">
+              {listing.owner.name}
+            </span>
+            <span className="text-sm text-gray-400 block">
+              {listing.owner.email}
+            </span>
           </div>
           {trustScore ? (
             <div className="flex items-center space-x-2 bg-brand-500/10 px-4 py-2 rounded-xl border border-brand-500/20 rtl:space-x-reverse">
               <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
               <span className="text-xl font-bold text-white">{trustScore}</span>
-              <span className="text-xs text-gray-400">({reviews.length} {language === 'en' ? 'reviews' : 'تقييمات'})</span>
+              <span className="text-xs text-gray-400">
+                ({reviews.length} {language === 'en' ? 'reviews' : 'تقييمات'})
+              </span>
             </div>
           ) : (
-            <span className="text-sm text-gray-500">{language === 'en' ? 'No reviews yet' : 'لا توجد تقييمات بعد'}</span>
+            <span className="text-sm text-gray-500">
+              {language === 'en' ? 'No reviews yet' : 'لا توجد تقييمات بعد'}
+            </span>
           )}
         </div>
       </div>
@@ -174,12 +224,20 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
         <div className="glass-panel p-6 rounded-2xl border border-brand-500/20 space-y-6">
           <div className="flex justify-between items-center border-b border-gray-800 pb-4">
             <div>
-              <span className="text-xs text-gray-500 block">{t('daily_price')}</span>
-              <span className="text-2xl font-extrabold text-white">${Number(listing.dailyPrice)}</span>
+              <span className="text-xs text-gray-500 block">
+                {t('daily_price')}
+              </span>
+              <span className="text-2xl font-extrabold text-white">
+                ${Number(listing.dailyPrice)}
+              </span>
             </div>
             <div className="text-right">
-              <span className="text-xs text-gray-500 block">{t('deposit_amount')}</span>
-              <span className="text-lg font-bold text-brand-300">${Number(listing.depositAmount)}</span>
+              <span className="text-xs text-gray-500 block">
+                {t('deposit_amount')}
+              </span>
+              <span className="text-lg font-bold text-brand-300">
+                ${Number(listing.depositAmount)}
+              </span>
             </div>
           </div>
 
@@ -200,7 +258,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
           <form onSubmit={handleBooking} className="space-y-4">
             {/* Start Date */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('start_date')}</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t('start_date')}
+              </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3.5 h-4 w-4 text-gray-500" />
                 <input
@@ -215,7 +275,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
 
             {/* End Date */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('end_date')}</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t('end_date')}
+              </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3.5 h-4 w-4 text-gray-500" />
                 <input
@@ -230,7 +292,9 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
 
             {/* Payment Method */}
             <div className="space-y-2 pt-2">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('payment_method')}</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t('payment_method')}
+              </label>
               <div className="flex flex-col gap-2">
                 <label className="flex items-center space-x-2 rtl:space-x-reverse bg-dark-900 border border-gray-800 p-3 rounded-xl cursor-pointer hover:bg-dark-800 transition">
                   <input
@@ -261,12 +325,13 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
             <button
               type="submit"
               disabled={bookingLoading || listing.owner.id === user?.id}
-              className="w-full rounded-xl bg-brand-600 hover:bg-brand-500 py-3.5 font-bold text-white shadow-lg shadow-brand-600/20 transition disabled:opacity-50 mt-4 uppercase tracking-wider text-sm flex items-center justify-center gap-2"
-            >
+              className="w-full rounded-xl bg-brand-600 hover:bg-brand-500 py-3.5 font-bold text-white shadow-lg shadow-brand-600/20 transition disabled:opacity-50 mt-4 uppercase tracking-wider text-sm flex items-center justify-center gap-2">
               {bookingLoading ? (
                 <>
                   <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  <span>{language === 'en' ? 'Processing...' : 'جاري المعالجة...'}</span>
+                  <span>
+                    {language === 'en' ? 'Processing...' : 'جاري المعالجة...'}
+                  </span>
                 </>
               ) : listing.owner.id === user?.id ? (
                 <span>{language === 'en' ? 'Your Listing' : 'عرضك الخاص'}</span>
@@ -290,3 +355,4 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
     </div>
   );
 }
+
