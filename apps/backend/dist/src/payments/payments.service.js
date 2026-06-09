@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsService = void 0;
 const common_1 = require("@nestjs/common");
-const stripe_1 = require("stripe");
+const Stripe = require("stripe");
 const prisma_service_1 = require("../prisma/prisma.service");
 const pricing_util_1 = require("./pricing.util");
 let PaymentsService = class PaymentsService {
@@ -26,7 +26,7 @@ let PaymentsService = class PaymentsService {
             throw new common_1.BadRequestException('Stripe is not configured. Set STRIPE_SECRET_KEY in the environment.');
         }
         if (!this.stripeClient) {
-            this.stripeClient = new stripe_1.default(secretKey);
+            this.stripeClient = new Stripe(secretKey);
         }
         return this.stripeClient;
     }

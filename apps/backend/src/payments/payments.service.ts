@@ -5,13 +5,10 @@ import {
   ForbiddenException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import Stripe from 'stripe';
+import Stripe = require('stripe');
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
-import {
-  calculateBookingTotal,
-  toStripeAmount,
-} from './pricing.util';
+import { calculateBookingTotal, toStripeAmount } from './pricing.util';
 
 type StripeClient = InstanceType<typeof Stripe>;
 
@@ -80,9 +77,7 @@ export class PaymentsService {
     }
 
     if (booking.renterId !== userId) {
-      throw new ForbiddenException(
-        'You can only pay for your own bookings',
-      );
+      throw new ForbiddenException('You can only pay for your own bookings');
     }
 
     if (booking.status !== 'Pending') {
@@ -305,3 +300,4 @@ export class PaymentsService {
     };
   }
 }
+
