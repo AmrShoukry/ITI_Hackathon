@@ -262,7 +262,7 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={bookingLoading || listing.ownerId === user?.id}
+              disabled={bookingLoading || listing.owner.id === user?.id}
               className="w-full rounded-xl bg-brand-600 hover:bg-brand-500 py-3.5 font-bold text-white shadow-lg shadow-brand-600/20 transition disabled:opacity-50 mt-4 uppercase tracking-wider text-sm flex items-center justify-center gap-2"
             >
               {bookingLoading ? (
@@ -270,7 +270,7 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
                   <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   <span>{language === 'en' ? 'Processing...' : 'جاري المعالجة...'}</span>
                 </>
-              ) : listing.ownerId === user?.id ? (
+              ) : listing.owner.id === user?.id ? (
                 <span>{language === 'en' ? 'Your Listing' : 'عرضك الخاص'}</span>
               ) : (
                 <span>{t('rent_now')}</span>

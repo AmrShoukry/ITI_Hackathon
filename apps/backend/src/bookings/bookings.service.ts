@@ -403,7 +403,7 @@ export class BookingsService {
         where: { bookingId: id },
         data: {
           status: 'Deducted',
-          deductedAmount,
+          deductedAmount: deductionAmount,
           releasedAt: new Date(),
         },
       });
