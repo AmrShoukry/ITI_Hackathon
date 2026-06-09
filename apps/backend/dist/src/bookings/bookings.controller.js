@@ -20,6 +20,7 @@ const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const roles_guard_1 = require("../auth/roles.guard");
 const roles_decorator_1 = require("../auth/roles.decorator");
 const current_user_decorator_1 = require("../auth/current-user.decorator");
+const swagger_1 = require("@nestjs/swagger");
 let BookingsController = class BookingsController {
     constructor(bookingsService) {
         this.bookingsService = bookingsService;
@@ -49,6 +50,10 @@ let BookingsController = class BookingsController {
 exports.BookingsController = BookingsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, swagger_1.ApiBody)({ type: booking_dto_1.CreateBookingDto }),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a booking' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Booking created' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Validation error' }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -57,6 +62,8 @@ __decorate([
 ], BookingsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List bookings for current user' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of bookings' }),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -64,6 +71,10 @@ __decorate([
 ], BookingsController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Booking ID' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get a booking by ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Booking details' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Booking not found' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -74,6 +85,10 @@ __decorate([
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('OWNER', 'ADMIN'),
     (0, common_1.Post)(':id/resolve'),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Booking ID to resolve' }),
+    (0, swagger_1.ApiBody)({ type: booking_dto_1.ResolveBookingDto }),
+    (0, swagger_1.ApiOperation)({ summary: 'Resolve a booking (approve/reject) - owner/admin' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Booking resolved' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, current_user_decorator_1.CurrentUser)()),
@@ -83,6 +98,9 @@ __decorate([
 ], BookingsController.prototype, "resolve", null);
 __decorate([
     (0, common_1.Post)(':id/status'),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Booking ID to update status' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Update booking status' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Status updated' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('status')),
     __param(2, (0, current_user_decorator_1.CurrentUser)()),
@@ -94,6 +112,9 @@ __decorate([
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)('OWNER', 'ADMIN'),
     (0, common_1.Post)(':id/damage'),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Booking ID' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Report damage and deduction for booking' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Damage reported' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('description')),
     __param(2, (0, common_1.Body)('deductionAmount')),
@@ -104,6 +125,9 @@ __decorate([
 ], BookingsController.prototype, "reportDamage", null);
 __decorate([
     (0, common_1.Post)(':id/reviews'),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'Booking ID to review' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Leave a review for a booking' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Review submitted' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('rating')),
     __param(2, (0, common_1.Body)('comment')),
@@ -113,7 +137,9 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], BookingsController.prototype, "leaveReview", null);
 exports.BookingsController = BookingsController = __decorate([
+    (0, swagger_1.ApiTags)('Bookings'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)('access-token'),
     (0, common_1.Controller)('bookings'),
     __metadata("design:paramtypes", [bookings_service_1.BookingsService])
 ], BookingsController);

@@ -13,39 +13,58 @@ import {
   UpdateUserStatusDto,
 } from './dto/admin.dto';
 import { AdminService } from './admin.service';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 
+@ApiTags('Admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth('access-token')
 @Roles('ADMIN')
 @Controller('admin')
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
   @Get('users')
+  @ApiOperation({ summary: 'Get all users (admin)' })
+  @ApiResponse({ status: 200, description: 'Users list' })
   async getUsers() {
     return this.adminService.getUsers();
   }
 
   @Get('roles')
+  @ApiOperation({ summary: 'Get available roles' })
+  @ApiResponse({ status: 200, description: 'Roles list' })
   async getRoles() {
     return this.adminService.getRoles();
   }
 
   @Get('verifications')
+  @ApiOperation({ summary: 'Get pending verifications (admin)' })
+  @ApiResponse({ status: 200, description: 'Verifications list' })
   async getVerifications() {
     return this.adminService.getVerifications();
   }
 
   @Patch('verifications/:id/approve')
+  @ApiParam({ name: 'id', description: 'Verification ID' })
+  @ApiOperation({ summary: 'Approve a verification' })
+  @ApiResponse({ status: 200, description: 'Verification approved' })
   async approveVerification(@Param('id') id: string, @CurrentUser() user: any) {
     return this.adminService.approveVerification(id, user.id);
   }
 
   @Patch('verifications/:id/reject')
+  @ApiParam({ name: 'id', description: 'Verification ID' })
+  @ApiOperation({ summary: 'Reject a verification' })
+  @ApiResponse({ status: 200, description: 'Verification rejected' })
   async rejectVerification(@Param('id') id: string, @CurrentUser() user: any) {
     return this.adminService.rejectVerification(id, user.id);
   }
 
   @Patch('users/:id/role')
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UpdateUserRoleDto })
+  @ApiOperation({ summary: 'Update user role' })
+  @ApiResponse({ status: 200, description: 'Role updated' })
   async updateUserRole(
     @Param('id') id: string,
     @Body() dto: UpdateUserRoleDto,
@@ -55,6 +74,10 @@ export class AdminController {
   }
 
   @Patch('users/:id/status')
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: UpdateUserStatusDto })
+  @ApiOperation({ summary: 'Update user status' })
+  @ApiResponse({ status: 200, description: 'Status updated' })
   async updateUserStatus(
     @Param('id') id: string,
     @Body() dto: UpdateUserStatusDto,
@@ -64,26 +87,38 @@ export class AdminController {
   }
 
   @Get('listings')
+  @ApiQuery({ name: 'status', required: false })
+  @ApiOperation({ summary: 'Get listings with optional status filter' })
+  @ApiResponse({ status: 200, description: 'Listings list' })
   async getListings(@Query('status') status?: string) {
     return this.adminService.getListings(status);
   }
 
   @Post('listings/:id/approve')
+  @ApiParam({ name: 'id', description: 'Listing ID' })
+  @ApiOperation({ summary: 'Approve a listing' })
+  @ApiResponse({ status: 200, description: 'Listing approved' })
   async approveListing(@Param('id') id: string, @CurrentUser() user: any) {
     return this.adminService.approveListing(id, user.id);
   }
 
   @Post('listings/:id/reject')
+  @ApiParam({ name: 'id', description: 'Listing ID' })
+  @ApiOperation({ summary: 'Reject a listing' })
+  @ApiResponse({ status: 200, description: 'Listing rejected' })
   async rejectListing(@Param('id') id: string, @CurrentUser() user: any) {
     return this.adminService.rejectListing(id, user.id);
   }
 
   @Get('categories')
+  @ApiOperation({ summary: 'Get categories' })
+  @ApiResponse({ status: 200, description: 'Categories list' })
   async getCategories() {
     return this.adminService.getCategories();
   }
 
   @Post('categories')
+  @ApiBody({ type: CreateCategoryDto })
   async createCategory(@Body() dto: CreateCategoryDto, @CurrentUser() user: any) {
     return this.adminService.createCategory(dto, user.id);
   }

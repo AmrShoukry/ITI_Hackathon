@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResolveBookingDto = exports.CreateBookingDto = exports.PaymentMethod = void 0;
 const class_validator_1 = require("class-validator");
+const swagger_1 = require("@nestjs/swagger");
 var PaymentMethod;
 (function (PaymentMethod) {
     PaymentMethod["ONLINE"] = "Online Payment";
@@ -22,21 +23,25 @@ exports.CreateBookingDto = CreateBookingDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
+    (0, swagger_1.ApiProperty)({ description: 'ID of the listing to book' }),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "listingId", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsDateString)(),
+    (0, swagger_1.ApiProperty)({ description: 'Booking start date (ISO string)', example: '2026-06-20' }),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "startDate", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsDateString)(),
+    (0, swagger_1.ApiProperty)({ description: 'Booking end date (ISO string)', example: '2026-06-25' }),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "endDate", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsEnum)(PaymentMethod, { message: 'Payment method must be Online Payment or Cash On Pickup' }),
+    (0, swagger_1.ApiProperty)({ enum: PaymentMethod, description: 'Payment method' }),
     __metadata("design:type", String)
 ], CreateBookingDto.prototype, "paymentMethod", void 0);
 class ResolveBookingDto {
@@ -46,6 +51,7 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsEnum)(['Approved', 'Rejected'], { message: 'Resolution status must be Approved or Rejected' }),
+    (0, swagger_1.ApiProperty)({ enum: ['Approved', 'Rejected'], description: 'Resolution status' }),
     __metadata("design:type", String)
 ], ResolveBookingDto.prototype, "status", void 0);
 //# sourceMappingURL=booking.dto.js.map
