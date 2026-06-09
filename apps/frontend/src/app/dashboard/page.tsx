@@ -88,23 +88,33 @@ export default function DashboardPage() {
         setMyListings(listingsRes.data);
       } else if (user.role === 'ADMIN') {
         setActiveTab('admin');
-        const verifRes = await axios.get(`${API_URL}/auth/profile`); // Profile returns verif status.
-        // For admin, we simulate finding pending verifications by calling a mock/custom route, or querying all profile models.
-        // For our simplified MVP, we will query a mocked endpoint or simulate user verification list:
         const bookingsRes = await axios.get(`${API_URL}/bookings`);
         setIncomingRequests(bookingsRes.data);
-        // Let's create mock admin view verifications:
-        setAllVerifications([
-          {
-            id: 'v1',
-            owner: { name: 'Verified Owner', email: 'owner@itemrental.com' },
-            nationalIdUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
-            status: 'Pending',
-          }
-        ]);
+        const verificationsRes = await axios.get(`${API_URL}/auth/admin/verifications`);
+        setAllVerifications(verificationsRes.data);
       }
     } catch (e: any) {
       setUiError(e.response?.data?.message || 'Error loading dashboard data');
+    }
+  };
+
+  const handleVerificationAction = async (verificationId: string, action: 'approve' | 'reject') => {
+    setUiError('');
+    setUiSuccess('');
+    try {
+      await axios.patch(`${API_URL}/auth/admin/verifications/${verificationId}/${action}`);
+      setUiSuccess(
+        action === 'approve'
+          ? language === 'en'
+            ? 'Owner approved successfully!'
+            : 'تمت الموافقة على المالك بنجاح!'
+          : language === 'en'
+            ? 'Owner rejected successfully!'
+            : 'تم رفض المالك بنجاح!'
+      );
+      fetchDashboardData();
+    } catch (err: any) {
+      setUiError(err.response?.data?.message || 'Failed to update verification status');
     }
   };
 
@@ -700,20 +710,14 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        setUiSuccess('Owner approved successfully!');
-                        setAllVerifications([]);
-                      }}
+                      onClick={() => handleVerificationAction(v.id, 'approve')}
                       className="rounded-lg bg-green-600 hover:bg-green-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
                     >
                       <Check className="h-4 w-4" />
                       <span>{t('approve_btn')}</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setUiSuccess('Owner rejected successfully!');
-                        setAllVerifications([]);
-                      }}
+                      onClick={() => handleVerificationAction(v.id, 'reject')}
                       className="rounded-lg bg-red-600 hover:bg-red-500 px-4 py-2 text-xs font-bold text-white flex items-center gap-1"
                     >
                       <X className="h-4 w-4" />

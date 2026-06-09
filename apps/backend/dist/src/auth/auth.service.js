@@ -126,6 +126,64 @@ let AuthService = class AuthService {
             verificationStatus,
         };
     }
+    async listOwnerVerifications() {
+        return this.prisma.ownerVerification.findMany({
+            include: {
+                owner: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                    },
+                },
+                reviewer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+    }
+    async approveOwnerVerification(id, adminId) {
+        const verification = await this.prisma.ownerVerification.findUnique({
+            where: { id },
+        });
+        if (!verification) {
+            throw new common_1.BadRequestException('Verification request not found');
+        }
+        return this.prisma.ownerVerification.update({
+            where: { id },
+            data: {
+                status: 'Approved',
+                reviewedBy: adminId,
+                reviewedAt: new Date(),
+                decisionReason: null,
+            },
+        });
+    }
+    async rejectOwnerVerification(id, adminId, decisionReason) {
+        const verification = await this.prisma.ownerVerification.findUnique({
+            where: { id },
+        });
+        if (!verification) {
+            throw new common_1.BadRequestException('Verification request not found');
+        }
+        return this.prisma.ownerVerification.update({
+            where: { id },
+            data: {
+                status: 'Rejected',
+                reviewedBy: adminId,
+                reviewedAt: new Date(),
+                decisionReason: decisionReason || 'Rejected by admin',
+            },
+        });
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([

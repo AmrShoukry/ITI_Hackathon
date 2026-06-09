@@ -18,6 +18,8 @@ const auth_service_1 = require("./auth.service");
 const auth_dto_1 = require("./dto/auth.dto");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 const current_user_decorator_1 = require("./current-user.decorator");
+const roles_guard_1 = require("./roles.guard");
+const roles_decorator_1 = require("./roles.decorator");
 let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;
@@ -30,6 +32,15 @@ let AuthController = class AuthController {
     }
     async getProfile(user) {
         return this.authService.getProfile(user.id);
+    }
+    async listOwnerVerifications() {
+        return this.authService.listOwnerVerifications();
+    }
+    async approveOwnerVerification(id, user) {
+        return this.authService.approveOwnerVerification(id, user.id);
+    }
+    async rejectOwnerVerification(id, decisionReason, user) {
+        return this.authService.rejectOwnerVerification(id, user.id, decisionReason);
     }
 };
 exports.AuthController = AuthController;
@@ -55,6 +66,35 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
+    (0, common_1.Get)('admin/verifications'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "listOwnerVerifications", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
+    (0, common_1.Patch)('admin/verifications/:id/approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "approveOwnerVerification", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
+    (0, roles_decorator_1.Roles)('ADMIN'),
+    (0, common_1.Patch)('admin/verifications/:id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('decisionReason')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "rejectOwnerVerification", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

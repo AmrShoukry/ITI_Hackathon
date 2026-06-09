@@ -138,4 +138,69 @@ export class AuthService {
       verificationStatus,
     };
   }
+
+  async listOwnerVerifications() {
+    return this.prisma.ownerVerification.findMany({
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async approveOwnerVerification(id: string, adminId: string) {
+    const verification = await this.prisma.ownerVerification.findUnique({
+      where: { id },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('Verification request not found');
+    }
+
+    return this.prisma.ownerVerification.update({
+      where: { id },
+      data: {
+        status: 'Approved',
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+        decisionReason: null,
+      },
+    });
+  }
+
+  async rejectOwnerVerification(id: string, adminId: string, decisionReason?: string) {
+    const verification = await this.prisma.ownerVerification.findUnique({
+      where: { id },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('Verification request not found');
+    }
+
+    return this.prisma.ownerVerification.update({
+      where: { id },
+      data: {
+        status: 'Rejected',
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+        decisionReason: decisionReason || 'Rejected by admin',
+      },
+    });
+  }
 }

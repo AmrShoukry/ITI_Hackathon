@@ -32,4 +32,7 @@ export declare class AuthController {
         preferredLanguage: any;
         verificationStatus: any;
     }>;
+    listOwnerVerifications(): Promise<any>;
+    approveOwnerVerification(id: string, user: any): Promise<any>;
+    rejectOwnerVerification(id: string, decisionReason: string | undefined, user: any): Promise<any>;
 }

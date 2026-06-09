@@ -34,4 +34,7 @@ export declare class AuthService {
         preferredLanguage: any;
         verificationStatus: any;
     }>;
+    listOwnerVerifications(): Promise<any>;
+    approveOwnerVerification(id: string, adminId: string): Promise<any>;
+    rejectOwnerVerification(id: string, adminId: string, decisionReason?: string): Promise<any>;
 }
